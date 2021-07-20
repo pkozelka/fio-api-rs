@@ -1,10 +1,10 @@
 //! doc/5: EXPORT (DOWNLOAD) POHYBŮ A VÝPISŮ Z BANKY
 //!
 use anyhow::Result;
+use reqwest::Response;
 use strum_macros::IntoStaticStr;
 
 use crate::{FIOAPI_URL_BASE, FioClient, FioDatum};
-use reqwest::Response;
 
 /// 5.1 Supported transaction formats
 #[derive(IntoStaticStr)]
@@ -60,7 +60,7 @@ impl FioExportReq {
     /// * `date_start`: datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `date_end`: datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `format`: formát pohybů
-    pub fn periods(date_start: FioDatum, date_end: FioDatum, format: ReportFormat) -> Result<Self> {
+    pub fn periods(date_start: FioDatum, date_end: FioDatum, format: TxFormat) -> Result<Self> {
         let format: &'static str = format.into();
         let params = format!("{datum_od}/{datum_do}/transactions.{format}",
                              datum_od = date_start,
@@ -70,7 +70,7 @@ impl FioExportReq {
     }
 
     /// doc/5.2.2: Oficiální výpisy pohybů z účtu
-    /// * `format`: formát pohybů
+    /// * `format`: formát výpisů
     pub fn by_id(year: u16, id: u8, format: ReportFormat) -> Result<Self> {
         let format: &'static str = format.into();
         let params = format!("{year}/{id}/transactions.{format}",
@@ -82,7 +82,7 @@ impl FioExportReq {
 
     /// doc/5.2.3: Pohyby na účtu od posledního stažení
     /// * `format`: formát pohybů
-    pub fn last(format: ReportFormat) -> Result<Self> {
+    pub fn last(format: TxFormat) -> Result<Self> {
         let format: &'static str = format.into();
         let params = format!("transactions.{format}",
                              format = format);
@@ -109,7 +109,7 @@ impl FioExportReq {
     /// * `date_start`: datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `date_end`: datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `format`: formát pohybů
-    pub fn merchant(date_start: FioDatum, date_end: FioDatum, format: ReportFormat) -> Result<Self> {
+    pub fn merchant(date_start: FioDatum, date_end: FioDatum, format: TxFormat) -> Result<Self> {
         let format: &'static str = format.into();
         let params = format!("{datum_od}/{datum_do}/transactions.{format}",
                              datum_od = date_start,
@@ -120,15 +120,15 @@ impl FioExportReq {
 
     /// doc/5.2.6: Číslo posledního vytvořeného oficiálního výpisu
     pub fn last_statement() -> Result<Self> {
-        Ok(Self { command: "lastStatement", params: "".to_string()})
+        Ok(Self { command: "lastStatement", params: "statement".to_string() })
     }
 
     fn build_url(&self, token: &str) -> String {
         format!("{url_base}/{command}/{token}/{params}",
-                          url_base = FIOAPI_URL_BASE,
-                          command = self.command,
-                          token = token,
-                          params = self.params)
+                url_base = FIOAPI_URL_BASE,
+                command = self.command,
+                token = token,
+                params = self.params)
     }
 }
 
