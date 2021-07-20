@@ -5,6 +5,7 @@ use reqwest::Response;
 use strum_macros::IntoStaticStr;
 
 use crate::{FIOAPI_URL_BASE, FioClient, FioDatum};
+use chrono::NaiveDate;
 
 /// 5.1 Supported transaction formats
 #[derive(IntoStaticStr)]
@@ -60,7 +61,7 @@ impl FioExportReq {
     /// * `date_start`: datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `date_end`: datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `format`: formát pohybů
-    pub fn periods(date_start: FioDatum, date_end: FioDatum, format: TxFormat) -> Result<Self> {
+    pub fn periods(date_start: NaiveDate, date_end: NaiveDate, format: TxFormat) -> Result<Self> {
         let format: &'static str = format.into();
         let params = format!("{datum_od}/{datum_do}/transactions.{format}",
                              datum_od = date_start,
@@ -109,7 +110,7 @@ impl FioExportReq {
     /// * `date_start`: datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `date_end`: datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
     /// * `format`: formát pohybů
-    pub fn merchant(date_start: FioDatum, date_end: FioDatum, format: TxFormat) -> Result<Self> {
+    pub fn merchant(date_start: NaiveDate, date_end: NaiveDate, format: TxFormat) -> Result<Self> {
         let format: &'static str = format.into();
         let params = format!("{datum_od}/{datum_do}/transactions.{format}",
                              datum_od = date_start,

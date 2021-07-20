@@ -16,6 +16,8 @@ async fn main() {
 mod tests {
     use fio_api_rs::FioClient;
     use fio_api_rs::export::{FioExportReq, ReportFormat, TxFormat};
+    use chrono::NaiveDate;
+    use std::str::FromStr;
 
     fn fio_client() -> FioClient {
         let token = std::fs::read_to_string(".git/fio-test-token").unwrap();
@@ -35,7 +37,9 @@ mod tests {
     #[tokio::test]
     async fn test_periods() {
         let fio = fio_client();
-        let req = FioExportReq::periods("2021-01-01".into(), "2021-03-31".into(), TxFormat::Csv).unwrap();
+        let date_start = NaiveDate::from_str("2021-01-01").unwrap();
+        let date_end = NaiveDate::from_str("2021-03-31").unwrap();
+        let req = FioExportReq::periods(date_start, date_end, TxFormat::Csv).unwrap();
         let response = fio.export(req).await.unwrap();
         println!("HTTP status: {}", response.status());
         let result = response.text().await.unwrap();
@@ -45,7 +49,9 @@ mod tests {
     #[tokio::test]
     async fn test_merchant() {
         let fio = fio_client();
-        let req = FioExportReq::merchant("2021-01-01".into(), "2021-06-30".into(), TxFormat::Csv).unwrap();
+        let date_start = NaiveDate::from_str("2021-01-01").unwrap();
+        let date_end = NaiveDate::from_str("2021-06-30").unwrap();
+        let req = FioExportReq::merchant(date_start, date_end, TxFormat::Csv).unwrap();
         let response = fio.export(req).await.unwrap();
         println!("HTTP status: {}", response.status());
         let result = response.text().await.unwrap();
