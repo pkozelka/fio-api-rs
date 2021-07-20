@@ -31,3 +31,4 @@ impl FioClient {
 
 pub mod export;
 mod import;
+mod error;
