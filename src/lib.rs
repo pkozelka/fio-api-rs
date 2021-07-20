@@ -4,6 +4,59 @@ use strum_macros::IntoStaticStr;
 
 type FioDatum = String;
 
+
+pub enum FioRequest {
+    /// doc/5.2.1: Pohyby na účtu za určené období
+    GetPeriods {
+        /// datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+        date_start: FioDatum,
+        /// datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+        date_end: FioDatum,
+        /// formát pohybů
+        format: ReportFormat,
+    },
+
+    /// doc/5.2.2: Oficiální výpisy pohybů z účtu
+    GetById {
+        year: u16,
+        id: u8,
+        /// formát pohybů
+        format: ReportFormat,
+    },
+
+    /// doc/5.2.3: Pohyby na účtu od posledního stažení
+    GetLast {
+        /// formát pohybů
+        format: ReportFormat,
+    },
+
+    /// doc/5.2.4: Nastavení zarážky
+    /// 1) Na ID posledního úspěšně staženého pohybu
+    GetSetLastId {
+        /// ID posledního úspěšně staženého pohybu
+        id: String,
+    },
+    /// doc/5.2.4: Nastavení zarážky
+    /// 2) Na datum posledního neúspěšně staženého dne
+    GetSetLastDate {
+        /// datum poslední neúspěšně staženého výpisu ve formátu rok- měsíc- den (rrrr-mm-dd)
+        date: FioDatum,
+    },
+
+    /// doc/5.2.5: Karetní transakce obchodníka za určené období
+    GetMerchant {
+        /// datum - začátek stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+        date_start: FioDatum,
+        /// datum - konec stahovaných příkazů ve formátu rok-měsíc-den (rrrr-mm-dd)
+        date_end: FioDatum,
+        /// formát pohybů
+        format: ReportFormat,
+    },
+
+    /// doc/5.2.6: Číslo posledního vytvořeného oficiálního výpisu
+    GetLastStatement,
+}
+
 /// 5.1 Supported transaction formats
 #[derive(IntoStaticStr)]
 pub enum TxFormat {
