@@ -36,6 +36,9 @@ fn main() -> std::io::Result<()> {
     println!("(-- data --)");
     for r in csv_reader.records() {
         let data = r?;
+        if data.len() != record.len() {
+            panic!("Column count differs: data={} headers={}", data.len(), record.len());
+        }
         for (i,heading) in record.iter().enumerate() {
             print!("{}: `{}`, ", heading, data.get(i).unwrap());
         }
