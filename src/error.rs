@@ -1,5 +1,4 @@
 use thiserror::Error as ThisError;
-use reqwest::Error;
 use serde::Deserialize;
 
 pub type Result<T, E = FioError> = core::result::Result<T, E>;
@@ -7,7 +6,7 @@ pub type Result<T, E = FioError> = core::result::Result<T, E>;
 #[derive(ThisError, Debug)]
 pub enum FioError {
     #[error("Failed to prepare HTTP request - check your parameters")]
-    ReqwestError(reqwest::Error), // TODO use #[from]
+    ReqwestError(#[from] reqwest::Error),
 
     /// doc/8.1: Pokoušíte se soubor odeslat jako klasický POST a nikoli jako přílohu.
     /// Viz část 6.1 Parametry pro upload dat.
@@ -55,11 +54,6 @@ pub enum FioError {
     },
 }
 
-impl From<reqwest::Error> for FioError {
-    fn from(e: Error) -> Self {
-        FioError::ReqwestError(e)
-    }
-}
 /*
 Sample error XML:
 <response xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://www.fio.cz/schema/response.xsd">
