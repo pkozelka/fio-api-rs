@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 use chrono::{NaiveDate, ParseResult};
 use std::num::ParseFloatError;
+use reqwest::Response;
+use crate::FioError;
+use crate::error::parse_xml_error;
+use crate::error::FioError::OtherError;
+use csv::StringRecord;
 
 const DATEFORMAT_DD_MM_YYYY: &str = "%d.%m.%Y";
 
@@ -8,7 +13,7 @@ pub struct FioResponse {
     info_headers: HashMap<String, String>,
 }
 
-trait FioResponseInfo {
+pub trait FioResponseInfo {
     fn get_info(&self, key: &str) -> Option<&str>;
 }
 
@@ -34,7 +39,7 @@ pub trait FioAccountInfo: FioResponseInfo {
 }
 impl FioAccountInfo for FioResponse {}
 
-pub trait RangeInfo: FioResponseInfo {
+pub trait FioRangeInfo: FioResponseInfo {
     fn opening_balance(&self) -> Result<f64, ParseFloatError> {
         let s = self.get_info("openingBalance")
             .unwrap_or("");
@@ -59,7 +64,7 @@ pub trait RangeInfo: FioResponseInfo {
         self.get_info("idTo")
     }
 }
-impl RangeInfo for FioResponse {}
+impl FioRangeInfo for FioResponse {}
 
 /// Fio uses special decimal format: integer and decimal parts are separated with comma (`,`) instead of dot (`.`).
 /// This function resolves the difference.
@@ -73,12 +78,63 @@ fn parse_fio_date(s: &str) -> ParseResult<NaiveDate> {
 }
 
 impl FioResponse {
+    pub async fn try_from(response: Response) -> crate::Result<Self> {
+        // analyze HTTP headers
+        let text = match response.status().as_u16() {
+            200..=299 => Ok(response.text().await?),
+            404 => Err(FioError::BadRequest),
+            409 => Err(FioError::InvalidTiming),
+            413 => Err(FioError::TooManyRows),
+            500 => Err(parse_xml_error(response).await),
+            _ => Err(OtherError { code: "other".to_string(), message: response.status().canonical_reason().unwrap_or("?").to_string()})
+        }?;
+        let mut this = FioResponse { info_headers: HashMap::new() };
+        // prepare csv reader
+        let mut csv_reader = csv::ReaderBuilder::new()
+            .delimiter(b';')
+            .has_headers(false)
+            .flexible(true)
+            .from_reader(text.as_bytes());
+        this.csv_fetch_info_lines(&mut csv_reader).await?;
+        // create object capable of iterating over the actual data
+        //TODO
+        Ok(this)
+    }
 
+    async fn csv_fetch_info_lines<R: std::io::Read> (&mut self, csv_reader: &mut csv::Reader<R>) -> crate::Result<()> {
+        // parse and store initial data info
+        let mut record = StringRecord::new();
+        while csv_reader.read_record(&mut record)? {
+            match record.len() {
+                2 => {
+                    // the heading part
+                    let key = record.get(0).unwrap();
+                    let value = record.get(1).unwrap();
+                    self.info_headers.insert(key.to_string(), value.to_string());
+                },
+                0 => {
+                    // skip all separator lines
+                    log::trace!("(-- separator line --)");
+                    while record.len() == 0 {
+                        if !csv_reader.read_record(&mut record)? {
+                            break;
+                        }
+                    }
+                    break;
+                },
+                _ => {
+                    log::debug!("Column count: {}", record.len());
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::response::{FioResponse, RangeInfo};
+    use crate::response::{FioResponse, FioRangeInfo};
     use std::collections::HashMap;
     use chrono::NaiveDate;
 

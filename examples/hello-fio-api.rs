@@ -1,15 +1,20 @@
-use fio_api_rs::FioClient;
+use fio_api_rs::{FioClient, FioResponse, FioRangeInfo, FioAccountInfo};
 use fio_api_rs::export::{FioExportReq, ReportFormat};
 
 #[tokio::main(flavor="current_thread")]
-async fn main() {
-    let token = std::fs::read_to_string(".git/fio-test-token").unwrap();
+async fn main() -> anyhow::Result<()> {
+    let token = std::fs::read_to_string(".git/fio-test-token")?;
     let fio = FioClient::new(&token);
-    let response = fio.export(FioExportReq::by_id(2020, 12, ReportFormat::Csv).unwrap())
-        .await.unwrap();
+    let response = fio.export(FioExportReq::by_id(2020, 12, ReportFormat::Csv)?)
+        .await?;
     println!("HTTP status: {}", response.status());
-    let result = response.text().await.unwrap();
-    println!("{}", result);
+    let response = FioResponse::try_from(response).await?;
+
+    println!("Account number {}/{} (IBAN: {})", response.account_id().unwrap(), response.bank_id().unwrap(), response.iban().unwrap());
+    println!("ID: {} .. {}", response.id_from().unwrap(), response.id_to().unwrap());
+    println!("Date: {} .. {}", response.date_start().unwrap()?, response.date_end().unwrap()?);
+    println!("Balance: {} .. {}", response.opening_balance().unwrap(), response.closing_balance().unwrap());
+    Ok(())
 }
 
 #[cfg(test)]

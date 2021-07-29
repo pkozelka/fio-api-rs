@@ -8,6 +8,9 @@ pub enum FioError {
     #[error("Failed to prepare HTTP request - check your parameters")]
     ReqwestError(#[from] reqwest::Error),
 
+    #[error("Error while parsing CSV")]
+    CsvError(#[from] csv::Error),
+
     /// doc/8.1: Pokoušíte se soubor odeslat jako klasický POST a nikoli jako přílohu.
     /// Viz část 6.1 Parametry pro upload dat.
     #[error("The server encoutered an internal error () that prevented it from fulfilling this request.")]

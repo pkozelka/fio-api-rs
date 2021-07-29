@@ -1,12 +1,11 @@
 //! doc/5: EXPORT (DOWNLOAD) POHYBŮ A VÝPISŮ Z BANKY
 //!
-use crate::error::{Result, FioError, parse_xml_error};
+use crate::error::Result;
 use reqwest::Response;
 use strum_macros::IntoStaticStr;
 
 use crate::{FIOAPI_URL_BASE, FioClient, FioDatum};
 use chrono::NaiveDate;
-use crate::error::FioError::OtherError;
 
 /// 5.1 Supported transaction formats
 #[derive(IntoStaticStr)]
@@ -135,22 +134,10 @@ impl FioExportReq {
 }
 
 impl FioClient {
-    pub async fn export(&self, fio_req: FioExportReq) -> Result<Response> {
+    pub async fn export(&self, fio_req: FioExportReq) -> reqwest::Result<Response> {
         let http_request = self.client
             .get(fio_req.build_url(&self.token))
             .build()?;
-        let response = self.client.execute(http_request).await?;
-        log::debug!("URL: {}", response.url());
-        log::debug!("HTTP status: {}", response.status());
-        log::trace!("Headers:");
-        response.headers().iter().for_each(|(h,v)| log::trace!("* {} = {:?}", h, v));
-        match response.status().as_u16() {
-            200..=299 => Ok(response),
-            404 => Err(FioError::BadRequest),
-            409 => Err(FioError::InvalidTiming),
-            413 => Err(FioError::TooManyRows),
-            500 => Err(parse_xml_error(response).await),
-            _ => Err(OtherError { code: "other".to_string(), message: response.status().canonical_reason().unwrap_or("?").to_string()})
-        }
+        self.client.execute(http_request).await
     }
 }
