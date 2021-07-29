@@ -3,6 +3,17 @@
 This library aims to fully support the FIO Banking API, offering both low-level access to the entire functionality, 
 and higher-level access for more convenient work in typical scenarios. 
 
+## Design goals
+
+Primary: low-level API
+- make entire API completely available, exposing all its documented features as closely as possible
+- expose returned outputs using convenient Rust types (enums, chrono, ...)
+- expose any errors conveniently
+
+Secondary: high-level API
+- multiple tokens
+- hide the rate control delays
+
 ## Rust APIs
 
 ### Low-level API
