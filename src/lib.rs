@@ -36,7 +36,7 @@ pub use response::FioRangeInfo;
 pub use error::Result;
 pub use error::FioError;
 
-mod csvdata;
+pub mod csvdata;
 pub mod export;
 mod import;
 mod error;

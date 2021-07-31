@@ -68,12 +68,12 @@ impl FioRangeInfo for FioResponse {}
 
 /// Fio uses special decimal format: integer and decimal parts are separated with comma (`,`) instead of dot (`.`).
 /// This function resolves the difference.
-fn parse_fio_decimal(s: &str) -> Result<f64, ParseFloatError> {
+pub(crate) fn parse_fio_decimal(s: &str) -> Result<f64, ParseFloatError> {
     let s = s.replacen(',', ".", 1); // TODO: get rid of allocation here
     s.parse()
 }
 
-fn parse_fio_date(s: &str) -> ParseResult<NaiveDate> {
+pub(crate) fn parse_fio_date(s: &str) -> ParseResult<NaiveDate> {
     NaiveDate::parse_from_str(s, DATEFORMAT_DD_MM_YYYY)
 }
 

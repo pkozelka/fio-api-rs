@@ -46,3 +46,21 @@ fn main() -> std::io::Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use fio_api_rs::csvdata::FioTransactionsRecord;
+
+    #[test]
+    fn test_justdata_serde() {
+        let mut csv_reader = csv::ReaderBuilder::new()
+            .delimiter(b';')
+            // .has_headers(false)
+            .flexible(true)
+            .from_path("test/test_by_id-justdata.csv").unwrap();
+        for r in csv_reader.deserialize() {
+            let record: FioTransactionsRecord = r.unwrap();
+            println!("{:?}", record)
+        }
+    }
+}
