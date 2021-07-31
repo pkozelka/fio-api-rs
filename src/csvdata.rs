@@ -59,8 +59,8 @@ pub enum TxType {
 }
 
 mod fio_date {
-    use chrono::{NaiveDate};
-    use serde::{self, Deserialize, Deserializer};
+    use chrono::NaiveDate;
+    use serde::{Deserialize, Deserializer};
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
         where D: Deserializer<'de>,
@@ -72,7 +72,7 @@ mod fio_date {
 }
 
 mod fio_decimal {
-    use serde::{self, Deserialize, Deserializer};
+    use serde::{Deserialize, Deserializer};
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<f64, D::Error>
         where D: Deserializer<'de>,
@@ -84,7 +84,7 @@ mod fio_decimal {
 }
 
 mod fio_txtype {
-    use serde::{self, Deserialize, Deserializer};
+    use serde::{Deserialize, Deserializer};
     use crate::csvdata::TxType;
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<TxType, D::Error>
