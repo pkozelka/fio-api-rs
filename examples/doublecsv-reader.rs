@@ -50,13 +50,43 @@ fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use fio_api_rs::csvdata::FioTransactionsRecord;
+    use std::io::{Cursor, BufRead};
+
+    #[test]
+    fn test_cursor_twoparts() -> anyhow::Result<()> {
+        let content = std::fs::read("test/test_by_id.csv").unwrap();
+        let mut cursor = Cursor::new(content);
+
+        // info part
+        let mut line = String::new();
+        while cursor.read_line(&mut line)? > 0 {
+            match line.find(';') {
+                None => break,
+                Some(n) => {
+                    let key = &line[0..n];
+                    let value = line[n + 1..].trim_end();
+                    println!("{}: {}", key, value);
+                }
+            }
+            line.clear();
+        }
+        println!();
+
+        // data part
+        let mut csv_reader = csv::ReaderBuilder::new()
+            .delimiter(b';')
+            .from_reader(cursor);
+        for r in csv_reader.deserialize() {
+            let record: FioTransactionsRecord = r?;
+            println!("{:?}", record);
+        }
+        Ok(())
+    }
 
     #[test]
     fn test_justdata_serde() {
         let mut csv_reader = csv::ReaderBuilder::new()
             .delimiter(b';')
-            // .has_headers(false)
-            .flexible(true)
             .from_path("test/test_by_id-justdata.csv").unwrap();
         for r in csv_reader.deserialize() {
             let record: FioTransactionsRecord = r.unwrap();
