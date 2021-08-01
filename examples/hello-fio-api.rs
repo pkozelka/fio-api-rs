@@ -1,4 +1,4 @@
-use fio_api_rs::{FioClient, FioResponse, FioRangeInfo, FioAccountInfo};
+use fio_api_rs::{FioClient, FioResponse};
 use fio_api_rs::export::{FioExportReq, ReportFormat};
 
 #[tokio::main(flavor="current_thread")]
@@ -8,12 +8,18 @@ async fn main() -> anyhow::Result<()> {
     let response = fio.export(FioExportReq::by_id(2020, 12, ReportFormat::Csv)?)
         .await?;
     println!("HTTP status: {}", response.status());
-    let response = FioResponse::try_from(response).await?;
-
-    println!("Account number {}/{} (IBAN: {})", response.account_id().unwrap(), response.bank_id().unwrap(), response.iban().unwrap());
-    println!("ID: {} .. {}", response.id_from().unwrap(), response.id_to().unwrap());
-    println!("Date: {} .. {}", response.date_start().unwrap()?, response.date_end().unwrap()?);
-    println!("Balance: {} .. {}", response.opening_balance().unwrap(), response.closing_balance().unwrap());
+    let mut response = FioResponse::try_from(response).await?;
+    let info = response.info()?;
+    println!("Account number {}/{} (IBAN: {})", info.account_id().unwrap(), info.bank_id().unwrap(), info.iban().unwrap());
+    println!("ID: {} .. {}", info.id_from().unwrap(), info.id_to().unwrap());
+    println!("Date: {} .. {}", info.date_start().unwrap()?, info.date_end().unwrap()?);
+    println!("Balance: {} .. {}", info.opening_balance().unwrap(), info.closing_balance().unwrap());
+    println!("-- DATA --");
+    let data = response.data()?;
+    for record in data {
+        let record = record?;
+        println!("{:?}", record);
+    }
     Ok(())
 }
 

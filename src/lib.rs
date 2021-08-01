@@ -30,8 +30,6 @@ impl FioClient {
 }
 
 pub use response::FioResponse;
-pub use response::FioAccountInfo;
-pub use response::FioRangeInfo;
 
 pub use error::Result;
 pub use error::FioError;
