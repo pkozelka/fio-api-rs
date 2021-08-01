@@ -1,11 +1,6 @@
 use chrono::NaiveDate;
 use serde::Deserialize;
 
-const _CSV_HEADER_TRANSACTIONS: &str =
-    "ID pohybu;Datum;Objem;Měna;Protiúčet;Název protiúčtu;Kód banky;Název banky;KS;VS;SS;Uživatelská identifikace;Zpráva pro příjemce;Typ;Provedl;Upřesnění;Komentář;BIC;ID pokynu;";
-const _CSV_HEADER_POS: &str =
-    "ID pohybu;ID pokynu;Datum;Objem;Poznámka;Název pobočky;Identifikátor transakce;Číslo zařízení;Datum transakce;Autorizační číslo;Číslo karty;Objem;Měna;Typ;Vystavitel karty;Poplatky celkem;Poplatek Fio;Poplatek intercharge;Poplatek karetní asociace;Zaúčtováno;Datum zaúčtování";
-
 #[derive(Debug, Deserialize)]
 pub struct FioTransactionsRecord {
     #[serde(rename="ID pohybu")]
@@ -85,6 +80,7 @@ mod fio_decimal {
 
 mod fio_txtype {
     use serde::{Deserialize, Deserializer};
+
     use crate::csvdata::TxType;
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<TxType, D::Error>

@@ -3,10 +3,14 @@
 
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 
+pub use error::FioError;
+pub use error::Result;
+pub use response::FioResponse;
+pub use response::FioResponseInfo;
+
 type FioDatum = String;
 
-pub enum FioRequest {
-}
+pub enum FioRequest {}
 
 const FIOAPI_URL_BASE: &'static str = "https://www.fio.cz/ib_api/rest";
 
@@ -28,11 +32,6 @@ impl FioClient {
         }
     }
 }
-
-pub use response::FioResponse;
-
-pub use error::Result;
-pub use error::FioError;
 
 pub mod csvdata;
 pub mod export;

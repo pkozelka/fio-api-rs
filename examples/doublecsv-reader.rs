@@ -14,7 +14,7 @@ fn main() -> std::io::Result<()> {
                 let key = record.get(0).unwrap();
                 let value = record.get(1).unwrap();
                 println!("{} = {}", key, value);
-            },
+            }
             0 => {
                 // skip all separator lines
                 println!("(-- separator line --)");
@@ -24,7 +24,7 @@ fn main() -> std::io::Result<()> {
                     }
                 }
                 break;
-            },
+            }
             _ => {
                 println!("Column count: {}", record.len());
                 break;
@@ -39,7 +39,7 @@ fn main() -> std::io::Result<()> {
         if data.len() != record.len() {
             panic!("Column count differs: data={} headers={}", data.len(), record.len());
         }
-        for (i,heading) in record.iter().enumerate() {
+        for (i, heading) in record.iter().enumerate() {
             print!("{}: `{}`, ", heading, data.get(i).unwrap());
         }
         println!()
@@ -49,34 +49,21 @@ fn main() -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
+    use fio_api_rs::{FioResponse, FioResponseInfo};
     use fio_api_rs::csvdata::FioTransactionsRecord;
-    use std::io::{Cursor, BufRead};
 
     #[test]
     fn test_cursor_twoparts() -> anyhow::Result<()> {
-        let content = std::fs::read("test/test_by_id.csv").unwrap();
+        let content = std::fs::read("test/test_by_id.csv")?;
         let mut cursor = Cursor::new(content);
 
-        // info part
-        let mut line = String::new();
-        while cursor.read_line(&mut line)? > 0 {
-            match line.find(';') {
-                None => break,
-                Some(n) => {
-                    let key = &line[0..n];
-                    let value = line[n + 1..].trim_end();
-                    println!("{}: {}", key, value);
-                }
-            }
-            line.clear();
-        }
-        println!();
-
+        let info = FioResponseInfo::read(&mut cursor)?;
+        println!("{:?} :: {:?}", info.iban(), info.bic());
         // data part
-        let mut csv_reader = csv::ReaderBuilder::new()
-            .delimiter(b';')
-            .from_reader(cursor);
-        for r in csv_reader.deserialize() {
+        let response = FioResponse::from(cursor);
+        for r in response.data()? {
             let record: FioTransactionsRecord = r?;
             println!("{:?}", record);
         }
@@ -84,13 +71,16 @@ mod tests {
     }
 
     #[test]
-    fn test_justdata_serde() {
-        let mut csv_reader = csv::ReaderBuilder::new()
-            .delimiter(b';')
-            .from_path("test/test_by_id-justdata.csv").unwrap();
-        for r in csv_reader.deserialize() {
-            let record: FioTransactionsRecord = r.unwrap();
-            println!("{:?}", record)
+    fn test_cursor_onlydata() -> anyhow::Result<()> {
+        let content = std::fs::read("test/test_by_id.csv")?;
+        let cursor = Cursor::new(content);
+
+        // data part
+        let response = FioResponse::new(cursor)?;
+        for r in response.data()? {
+            let record: FioTransactionsRecord = r?;
+            println!("{:?}", record);
         }
+        Ok(())
     }
 }

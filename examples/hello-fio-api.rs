@@ -13,22 +13,23 @@ async fn main() -> anyhow::Result<()> {
     println!("Account number {}/{} (IBAN: {})", info.account_id().unwrap(), info.bank_id().unwrap(), info.iban().unwrap());
     println!("ID: {} .. {}", info.id_from().unwrap(), info.id_to().unwrap());
     println!("Date: {} .. {}", info.date_start().unwrap()?, info.date_end().unwrap()?);
-    println!("Balance: {} .. {}", info.opening_balance().unwrap(), info.closing_balance().unwrap());
     println!("-- DATA --");
-    let data = response.data()?;
-    for record in data {
+    for record in response.data()? {
         let record = record?;
         println!("{:?}", record);
     }
+    println!("Balance: {} .. {}", info.opening_balance().unwrap(), info.closing_balance().unwrap());
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use fio_api_rs::FioClient;
-    use fio_api_rs::export::{FioExportReq, ReportFormat, TxFormat};
-    use chrono::NaiveDate;
     use std::str::FromStr;
+
+    use chrono::NaiveDate;
+
+    use fio_api_rs::export::{FioExportReq, ReportFormat, TxFormat};
+    use fio_api_rs::FioClient;
 
     fn fio_client() -> FioClient {
         std::env::set_var("RUST_LOG", "fio_api_rs=trace");

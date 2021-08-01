@@ -6,10 +6,10 @@ use chrono::{NaiveDate, ParseResult};
 use csv::{DeserializeRecordsIntoIter, Reader};
 use reqwest::Response;
 
+use crate::csvdata::FioTransactionsRecord;
 use crate::error::FioError::OtherError;
 use crate::error::parse_xml_error;
 use crate::FioError;
-use crate::csvdata::FioTransactionsRecord;
 
 const DATEFORMAT_DD_MM_YYYY: &str = "%d.%m.%Y";
 
@@ -24,6 +24,12 @@ impl From<Cursor<Vec<u8>>> for FioResponse {
 }
 
 impl FioResponse {
+    pub fn new(cursor: Cursor<Vec<u8>>) -> std::io::Result<Self> {
+        let mut this = Self::from(cursor);
+        FioResponseInfo::skip(&mut this.cursor)?;
+        Ok(this)
+    }
+
     pub async fn try_from(response: Response) -> crate::Result<Self> {
         // analyze HTTP headers
         match response.status().as_u16() {
@@ -47,7 +53,7 @@ impl FioResponse {
         FioResponseInfo::read(&mut self.cursor)
     }
 
-    fn csv_reader(mut self) -> std::io::Result<Reader<Cursor<Vec<u8>>>> {
+    pub fn csv_reader(mut self) -> std::io::Result<Reader<Cursor<Vec<u8>>>> {
         FioResponseInfo::skip(&mut self.cursor)?;
         Ok(csv::ReaderBuilder::new()
             .delimiter(b';')
@@ -75,7 +81,7 @@ pub struct FioResponseInfo {
 
 impl FioResponseInfo {
     /// Read from cursor
-    fn read(cursor: &mut Cursor<Vec<u8>>) -> std::io::Result<Self> {
+    pub fn read(cursor: &mut Cursor<Vec<u8>>) -> std::io::Result<Self> {
         let mut line = String::new();
         let mut info_headers = HashMap::new();
         while cursor.read_line(&mut line)? > 0 {
@@ -95,7 +101,7 @@ impl FioResponseInfo {
         Ok(Self { info_headers })
     }
 
-    fn skip(cursor: &mut Cursor<Vec<u8>>) -> std::io::Result<()> {
+    pub fn skip(cursor: &mut Cursor<Vec<u8>>) -> std::io::Result<()> {
         // if position is not 0, we suppose that info part was already read
         if cursor.position() == 0 {
             let mut line = String::new();
@@ -182,13 +188,13 @@ mod tests {
 
     use chrono::NaiveDate;
 
-    use crate::response::{FioRangeInfo, FioResponse};
+    use crate::FioResponseInfo;
 
     #[test]
     fn test_parse_balance() {
         let mut info_headers = HashMap::new();
         info_headers.insert("openingBalance".to_string(), "4789,51".to_string());
-        let r = FioResponse { info_headers };
+        let r = FioResponseInfo { info_headers };
         let balance = r.opening_balance();
         print!("balance = {:?}", balance);
         assert_eq!(Ok(4789.51_f64), balance);
@@ -198,7 +204,7 @@ mod tests {
     fn test_parse_date() {
         let mut info_headers = HashMap::new();
         info_headers.insert("dateEnd".to_string(), "31.03.2021".to_string());
-        let r = FioResponse { info_headers };
+        let r = FioResponseInfo { info_headers };
         let date = r.date_end();
         print!("date = {:?}", date);
         assert_eq!(Some(Ok(NaiveDate::from_ymd(2021, 3, 31))), date);
