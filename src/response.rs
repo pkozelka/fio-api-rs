@@ -79,6 +79,12 @@ pub struct FioResponseInfo {
     info_headers: HashMap<String, String>,
 }
 
+impl From<HashMap<String, String>> for FioResponseInfo {
+    fn from(info_headers: HashMap<String, String>) -> Self {
+        Self { info_headers }
+    }
+}
+
 impl FioResponseInfo {
     /// Read from cursor
     pub fn read(cursor: &mut Cursor<Vec<u8>>) -> std::io::Result<Self> {
@@ -86,6 +92,7 @@ impl FioResponseInfo {
         let mut info_headers = HashMap::new();
         while cursor.read_line(&mut line)? > 0 {
             if line.starts_with('\u{feff}') {
+                // remove BOM
                 line.remove(0);
             }
             match line.find(';') {
@@ -98,7 +105,7 @@ impl FioResponseInfo {
             }
             line.clear();
         }
-        Ok(Self { info_headers })
+        Ok(Self::from(info_headers))
     }
 
     pub fn skip(cursor: &mut Cursor<Vec<u8>>) -> std::io::Result<()> {
@@ -119,10 +126,12 @@ impl FioResponseInfo {
         self.info_headers.get(key).map(|s| s.as_str())
     }
 
+    /// Consumes instance, returning internal representation of the response info.
     pub fn into_inner(self) -> HashMap<String, String> {
         self.info_headers
     }
 
+    /// Returns reference to internal representation of the response info.
     pub fn get_ref(&self) -> &HashMap<String, String> {
         &self.info_headers
     }
@@ -184,29 +193,61 @@ pub(crate) fn parse_fio_date(s: &str) -> ParseResult<NaiveDate> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::io::Cursor;
 
     use chrono::NaiveDate;
 
+    use crate::error::Result;
     use crate::FioResponseInfo;
+    use crate::response::parse_fio_date;
 
-    #[test]
-    fn test_parse_balance() {
-        let mut info_headers = HashMap::new();
-        info_headers.insert("openingBalance".to_string(), "4789,51".to_string());
-        let r = FioResponseInfo { info_headers };
-        let balance = r.opening_balance();
-        print!("balance = {:?}", balance);
-        assert_eq!(Ok(4789.51_f64), balance);
+    const SAMPLE1: &str = r#"accountId;2345678901
+bankId;2010
+currency;CZK
+iban;CZ6220100000002345678901
+bic;FIOBCZPPXXX
+openingBalance;4789,51
+closingBalance;19753,26
+dateStart;01.06.2021
+dateEnd;30.06.2021
+yearList;2021
+idList;6
+idFrom;23771345451
+idTo;23794028126
+
+ID pohybu;Datum;Objem;Měna;Protiúčet;Název protiúčtu;Kód banky;Název banky;KS;VS;SS;Uživatelská identifikace;Zpráva pro příjemce;Typ;Provedl;Upřesnění;Komentář;BIC;ID pokynu
+"#;
+
+    impl FioResponseInfo {
+        fn sample1() -> Result<Self> {
+            let mut cursor = Cursor::new(SAMPLE1.as_bytes().to_vec());
+            Ok(FioResponseInfo::read(&mut cursor)?)
+        }
     }
 
     #[test]
-    fn test_parse_date() {
-        let mut info_headers = HashMap::new();
-        info_headers.insert("dateEnd".to_string(), "31.03.2021".to_string());
-        let r = FioResponseInfo { info_headers };
-        let date = r.date_end();
-        print!("date = {:?}", date);
-        assert_eq!(Some(Ok(NaiveDate::from_ymd(2021, 3, 31))), date);
+    fn test_parse_balance() -> Result<()> {
+        let info = FioResponseInfo::sample1()?;
+        let balance = info.opening_balance();
+        println!("balance = {:?}", balance);
+        assert_eq!(Ok(4789.51_f64), balance);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_date() -> Result<()> {
+        let info = FioResponseInfo::sample1()?;
+        let date = info.date_end();
+        println!("date = {:?}", date);
+        assert_eq!(Some(Ok(NaiveDate::from_ymd(2021, 6, 30))), date);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_fio_date() -> Result<()> {
+        let date = parse_fio_date("30.06.2021");
+        println!("date = {:?}", date);
+        assert_eq!(Ok(NaiveDate::from_ymd(2021, 6, 30)), date);
+        Ok(())
     }
 }

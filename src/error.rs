@@ -1,5 +1,5 @@
-use thiserror::Error as ThisError;
 use serde::Deserialize;
+use thiserror::Error as ThisError;
 
 pub type Result<T, E = FioError> = core::result::Result<T, E>;
 
@@ -10,6 +10,12 @@ pub enum FioError {
 
     #[error("Error while parsing CSV")]
     CsvError(#[from] csv::Error),
+
+    #[error("IO Error")]
+    IoError(#[from] std::io::Error),
+
+    #[error("Error parsing amount")]
+    ParseFloatError(#[from] std::num::ParseFloatError),
 
     /// doc/8.1: Pokoušíte se soubor odeslat jako klasický POST a nikoli jako přílohu.
     /// Viz část 6.1 Parametry pro upload dat.
