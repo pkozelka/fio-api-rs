@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::io::{BufRead, Cursor, ErrorKind};
-use std::num::ParseFloatError;
 
 use chrono::NaiveDate;
 use csv::{DeserializeRecordsIntoIter, Reader};
@@ -195,13 +194,13 @@ impl FioResponseInfo {
 
     pub fn opening_balance(&self) -> crate::Result<f64> {
         let s = self.get_info(INFO_OPENING_BALANCE)?;
-        parse_fio_decimal(s)
+        csvdata::fio_decimal::parse_fio_decimal(s)
             .map_err(crate::error::FioError::from)
     }
 
     pub fn closing_balance(&self) -> crate::Result<f64> {
         let s = self.get_info(INFO_CLOSING_BALANCE)?;
-        parse_fio_decimal(s)
+        csvdata::fio_decimal::parse_fio_decimal(s)
             .map_err(crate::error::FioError::from)
     }
 
@@ -224,13 +223,6 @@ impl FioResponseInfo {
     pub fn id_to(&self) -> crate::Result<&str> {
         self.get_info(INFO_ID_TO)
     }
-}
-
-/// Fio uses special decimal format: integer and decimal parts are separated with comma (`,`) instead of dot (`.`).
-/// This function resolves the difference.
-pub(crate) fn parse_fio_decimal(s: &str) -> Result<f64, ParseFloatError> {
-    let s = s.replacen(',', ".", 1); // TODO: get rid of allocation here
-    s.parse()
 }
 
 #[cfg(test)]

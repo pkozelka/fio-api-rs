@@ -72,14 +72,23 @@ pub(crate) mod fio_date {
     }
 }
 
-mod fio_decimal {
+pub(crate) mod fio_decimal {
+    use std::num::ParseFloatError;
+
     use serde::{Deserialize, Deserializer};
+
+    /// Fio uses special decimal format: integer and decimal parts are separated with comma (`,`) instead of dot (`.`).
+    /// This function resolves the difference.
+    pub fn parse_fio_decimal(s: &str) -> Result<f64, ParseFloatError> {
+        let s = s.replacen(',', ".", 1); // TODO: get rid of allocation here
+        s.parse()
+    }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<f64, D::Error>
         where D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        crate::response::parse_fio_decimal(&s)
+        parse_fio_decimal(&s)
             .map_err(serde::de::Error::custom)
     }
 }
