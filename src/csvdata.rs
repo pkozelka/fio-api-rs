@@ -53,15 +53,21 @@ pub enum TxType {
     Other(String)
 }
 
-mod fio_date {
-    use chrono::NaiveDate;
+pub(crate) mod fio_date {
+    use chrono::{NaiveDate, ParseResult};
     use serde::{Deserialize, Deserializer};
+
+    const DATEFORMAT_DD_MM_YYYY: &str = "%d.%m.%Y";
+
+    pub fn parse_fio_date(s: &str) -> ParseResult<NaiveDate> {
+        NaiveDate::parse_from_str(s, DATEFORMAT_DD_MM_YYYY)
+    }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
         where D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        crate::response::parse_fio_date(&s)
+        parse_fio_date(&s)
             .map_err(serde::de::Error::custom)
     }
 }

@@ -2,16 +2,14 @@ use std::collections::HashMap;
 use std::io::{BufRead, Cursor, ErrorKind};
 use std::num::ParseFloatError;
 
-use chrono::{NaiveDate, ParseResult};
+use chrono::NaiveDate;
 use csv::{DeserializeRecordsIntoIter, Reader};
 use reqwest::Response;
 
+use crate::{csvdata, FioError};
 use crate::csvdata::FioTransactionsRecord;
 use crate::error::FioError::OtherError;
 use crate::error::parse_xml_error;
-use crate::FioError;
-
-const DATEFORMAT_DD_MM_YYYY: &str = "%d.%m.%Y";
 
 /// Translation of CSV response.
 /// The text will be typically received from calls to [Fio REST API](crate::export::FioExportReq):
@@ -209,13 +207,13 @@ impl FioResponseInfo {
 
     pub fn date_start(&self) -> crate::Result<NaiveDate> {
         let s = self.get_info(INFO_DATE_START)?;
-        parse_fio_date(s)
+        csvdata::fio_date::parse_fio_date(s)
             .map_err(crate::error::FioError::from)
     }
 
     pub fn date_end(&self) -> crate::Result<NaiveDate> {
         let s = self.get_info(INFO_DATE_END)?;
-        parse_fio_date(s)
+        csvdata::fio_date::parse_fio_date(s)
             .map_err(crate::error::FioError::from)
     }
 
@@ -235,19 +233,15 @@ pub(crate) fn parse_fio_decimal(s: &str) -> Result<f64, ParseFloatError> {
     s.parse()
 }
 
-pub(crate) fn parse_fio_date(s: &str) -> ParseResult<NaiveDate> {
-    NaiveDate::parse_from_str(s, DATEFORMAT_DD_MM_YYYY)
-}
-
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
 
     use chrono::NaiveDate;
 
+    use crate::csvdata::fio_date::parse_fio_date;
     use crate::error::Result;
     use crate::FioResponseInfo;
-    use crate::response::parse_fio_date;
 
     const SAMPLE1: &str = r#"accountId;2345678901
 bankId;2010
