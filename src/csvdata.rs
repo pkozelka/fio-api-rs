@@ -70,6 +70,16 @@ pub(crate) mod fio_date {
         parse_fio_date(&s)
             .map_err(serde::de::Error::custom)
     }
+
+    mod tests {
+        #[test]
+        fn test_parse_fio_date() -> crate::Result<()> {
+            let date = super::parse_fio_date("30.06.2021")?;
+            println!("date = {:?}", date);
+            assert_eq!(chrono::NaiveDate::from_ymd(2021, 6, 30), date);
+            Ok(())
+        }
+    }
 }
 
 pub(crate) mod fio_decimal {

@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
 mod tests {
     use std::str::FromStr;
 
-    use chrono::NaiveDate;
+    use chrono::{Datelike, NaiveDate};
 
     use fio_api_rs::export::{FioExportReq, ReportFormat, TxFormat};
     use fio_api_rs::FioClient;
@@ -40,15 +40,23 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_by_id() {
         let fio = fio_client();
-        let req = FioExportReq::by_id(2021, 11, ReportFormat::Csv).unwrap();
+        let now = chrono::Utc::now();
+        let (year, id) = if now.month() == 1 {
+            (now.year() - 1, 12)
+        } else {
+            (now.year(), now.month() - 1)
+        };
+        let req = FioExportReq::by_id(year as u16, id as u8, ReportFormat::Csv).unwrap();
         let response = fio.export(req).await.unwrap();
         let result = response.text().await.unwrap();
         println!("{}", result);
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_periods() {
         let fio = fio_client();
         let date_start = NaiveDate::from_str("2021-01-01").unwrap();
@@ -60,6 +68,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_merchant() {
         let fio = fio_client();
         let date_start = NaiveDate::from_str("2021-01-01").unwrap();
@@ -71,6 +80,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_last() {
         let fio = fio_client();
         let req = FioExportReq::last(TxFormat::Csv).unwrap();
@@ -80,6 +90,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_last_statement() {
         let fio = fio_client();
         let req = FioExportReq::last_statement().unwrap();

@@ -231,7 +231,6 @@ mod tests {
 
     use chrono::NaiveDate;
 
-    use crate::csvdata::fio_date::parse_fio_date;
     use crate::error::Result;
     use crate::FioResponseInfo;
 
@@ -272,14 +271,6 @@ ID pohybu;Datum;Objem;Měna;Protiúčet;Název protiúčtu;Kód banky;Název ban
     fn test_parse_date() -> Result<()> {
         let info = FioResponseInfo::sample1()?;
         let date = info.date_end()?;
-        println!("date = {:?}", date);
-        assert_eq!(NaiveDate::from_ymd(2021, 6, 30), date);
-        Ok(())
-    }
-
-    #[test]
-    fn test_parse_fio_date() -> Result<()> {
-        let date = parse_fio_date("30.06.2021")?;
         println!("date = {:?}", date);
         assert_eq!(NaiveDate::from_ymd(2021, 6, 30), date);
         Ok(())
