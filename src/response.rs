@@ -74,6 +74,19 @@ impl FioResponse {
     }
 }
 
+const INFO_ACCOUNT_ID: &'static str = "accountId";
+const INFO_BANK_ID: &'static str = "bankId";
+const INFO_IBAN: &'static str = "iban";
+const INFO_BIC: &'static str = "bic";
+const INFO_OPENING_BALANCE: &'static str = "openingBalance";
+const INFO_CLOSING_BALANCE: &'static str = "closingBalance";
+const INFO_DATE_START: &'static str = "dateStart";
+const INFO_DATE_END: &'static str = "dateEnd";
+const INFO_ID_FROM: &'static str = "idFrom";
+const INFO_ID_TO: &'static str = "idTo";
+
+const UNICODE_BOM: char = '\u{feff}';
+
 /// Representation of the initial "info" part of FIO csv file.
 pub struct FioResponseInfo {
     info_headers: HashMap<String, String>,
@@ -91,7 +104,7 @@ impl FioResponseInfo {
         let mut line = String::new();
         let mut info_headers = HashMap::new();
         while cursor.read_line(&mut line)? > 0 {
-            if line.starts_with('\u{feff}') {
+            if line.starts_with(UNICODE_BOM) {
                 // remove BOM
                 line.remove(0);
             }
@@ -137,46 +150,46 @@ impl FioResponseInfo {
     }
 
     pub fn account_id(&self) -> Option<&str> {
-        self.get_info("accountId")
+        self.get_info(INFO_ACCOUNT_ID)
     }
 
     pub fn bank_id(&self) -> Option<&str> {
-        self.get_info("bankId")
+        self.get_info(INFO_BANK_ID)
     }
 
     pub fn iban(&self) -> Option<&str> {
-        self.get_info("iban")
+        self.get_info(INFO_IBAN)
     }
 
     pub fn bic(&self) -> Option<&str> {
-        self.get_info("bic")
+        self.get_info(INFO_BIC)
     }
 
     pub fn opening_balance(&self) -> Result<f64, ParseFloatError> {
-        let s = self.get_info("openingBalance")
+        let s = self.get_info(INFO_OPENING_BALANCE)
             .unwrap_or("");
         parse_fio_decimal(s)
     }
 
     pub fn closing_balance(&self) -> Result<f64, ParseFloatError> {
-        let s = self.get_info("closingBalance")
+        let s = self.get_info(INFO_CLOSING_BALANCE)
             .unwrap_or("");
         parse_fio_decimal(s)
     }
 
     pub fn date_start(&self) -> Option<ParseResult<NaiveDate>> {
-        self.get_info("dateStart").map(parse_fio_date)
+        self.get_info(INFO_DATE_START).map(parse_fio_date)
     }
 
     pub fn date_end(&self) -> Option<ParseResult<NaiveDate>> {
-        self.get_info("dateEnd").map(parse_fio_date)
+        self.get_info(INFO_DATE_END).map(parse_fio_date)
     }
 
     pub fn id_from(&self) -> Option<&str> {
-        self.get_info("idFrom")
+        self.get_info(INFO_ID_FROM)
     }
     pub fn id_to(&self) -> Option<&str> {
-        self.get_info("idTo")
+        self.get_info(INFO_ID_TO)
     }
 }
 
