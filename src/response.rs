@@ -37,7 +37,7 @@ impl FioResponse {
                 let bytes = response.bytes().await?.to_vec();
                 let cursor = Cursor::new(bytes);
                 Ok(Self::from(cursor))
-            },
+            }
             404 => Err(FioError::BadRequest),
             409 => Err(FioError::InvalidTiming),
             413 => Err(FioError::TooManyRows),
@@ -60,7 +60,7 @@ impl FioResponse {
             .from_reader(self.cursor))
     }
 
-    pub fn data(self) -> std::io::Result<DeserializeRecordsIntoIter<Cursor<Vec<u8>>,FioTransactionsRecord>> {
+    pub fn data(self) -> std::io::Result<DeserializeRecordsIntoIter<Cursor<Vec<u8>>, FioTransactionsRecord>> {
         let csv_reader = self.csv_reader()?;
         Ok(csv_reader.into_deserialize())
     }
@@ -136,8 +136,11 @@ impl FioResponseInfo {
         Ok(())
     }
 
-    fn get_info(&self, key: &str) -> Option<&str> {
-        self.info_headers.get(key).map(|s| s.as_str())
+    fn get_info(&self, key: &str) -> crate::Result<&str> {
+        match self.info_headers.get(key) {
+            None => Err(crate::error::FioError::MissingInfoField(key.to_string())),
+            Some(s) => Ok(s.as_str())
+        }
     }
 
     /// Consumes instance, returning internal representation of the response info.
@@ -150,49 +153,55 @@ impl FioResponseInfo {
         &self.info_headers
     }
 
-    pub fn account_id(&self) -> Option<&str> {
+    pub fn account_id(&self) -> crate::Result<&str> {
         self.get_info(INFO_ACCOUNT_ID)
     }
 
-    pub fn bank_id(&self) -> Option<&str> {
+    pub fn bank_id(&self) -> crate::Result<&str> {
         self.get_info(INFO_BANK_ID)
     }
-    pub fn currency(&self) -> Option<&str> {
+
+    pub fn currency(&self) -> crate::Result<&str> {
         self.get_info(INFO_CURRENCY)
     }
 
-    pub fn iban(&self) -> Option<&str> {
+    pub fn iban(&self) -> crate::Result<&str> {
         self.get_info(INFO_IBAN)
     }
 
-    pub fn bic(&self) -> Option<&str> {
+    pub fn bic(&self) -> crate::Result<&str> {
         self.get_info(INFO_BIC)
     }
 
-    pub fn opening_balance(&self) -> Result<f64, ParseFloatError> {
-        let s = self.get_info(INFO_OPENING_BALANCE)
-            .unwrap_or("");
+    pub fn opening_balance(&self) -> crate::Result<f64> {
+        let s = self.get_info(INFO_OPENING_BALANCE)?;
         parse_fio_decimal(s)
+            .map_err(crate::error::FioError::from)
     }
 
-    pub fn closing_balance(&self) -> Result<f64, ParseFloatError> {
-        let s = self.get_info(INFO_CLOSING_BALANCE)
-            .unwrap_or("");
+    pub fn closing_balance(&self) -> crate::Result<f64> {
+        let s = self.get_info(INFO_CLOSING_BALANCE)?;
         parse_fio_decimal(s)
+            .map_err(crate::error::FioError::from)
     }
 
-    pub fn date_start(&self) -> Option<ParseResult<NaiveDate>> {
-        self.get_info(INFO_DATE_START).map(parse_fio_date)
+    pub fn date_start(&self) -> crate::Result<NaiveDate> {
+        let s = self.get_info(INFO_DATE_START)?;
+        parse_fio_date(s)
+            .map_err(crate::error::FioError::from)
     }
 
-    pub fn date_end(&self) -> Option<ParseResult<NaiveDate>> {
-        self.get_info(INFO_DATE_END).map(parse_fio_date)
+    pub fn date_end(&self) -> crate::Result<NaiveDate> {
+        let s = self.get_info(INFO_DATE_END)?;
+        parse_fio_date(s)
+            .map_err(crate::error::FioError::from)
     }
 
-    pub fn id_from(&self) -> Option<&str> {
+    pub fn id_from(&self) -> crate::Result<&str> {
         self.get_info(INFO_ID_FROM)
     }
-    pub fn id_to(&self) -> Option<&str> {
+
+    pub fn id_to(&self) -> crate::Result<&str> {
         self.get_info(INFO_ID_TO)
     }
 }
@@ -245,26 +254,26 @@ ID pohybu;Datum;Objem;Měna;Protiúčet;Název protiúčtu;Kód banky;Název ban
     #[test]
     fn test_parse_balance() -> Result<()> {
         let info = FioResponseInfo::sample1()?;
-        let balance = info.opening_balance();
+        let balance = info.opening_balance()?;
         println!("balance = {:?}", balance);
-        assert_eq!(Ok(4789.51_f64), balance);
+        assert_eq!(4789.51_f64, balance);
         Ok(())
     }
 
     #[test]
     fn test_parse_date() -> Result<()> {
         let info = FioResponseInfo::sample1()?;
-        let date = info.date_end();
+        let date = info.date_end()?;
         println!("date = {:?}", date);
-        assert_eq!(Some(Ok(NaiveDate::from_ymd(2021, 6, 30))), date);
+        assert_eq!(NaiveDate::from_ymd(2021, 6, 30), date);
         Ok(())
     }
 
     #[test]
     fn test_parse_fio_date() -> Result<()> {
-        let date = parse_fio_date("30.06.2021");
+        let date = parse_fio_date("30.06.2021")?;
         println!("date = {:?}", date);
-        assert_eq!(Ok(NaiveDate::from_ymd(2021, 6, 30)), date);
+        assert_eq!(NaiveDate::from_ymd(2021, 6, 30), date);
         Ok(())
     }
 }

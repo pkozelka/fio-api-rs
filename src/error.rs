@@ -14,8 +14,11 @@ pub enum FioError {
     #[error("IO Error")]
     IoError(#[from] std::io::Error),
 
-    #[error("Error parsing amount")]
+    #[error("Error parsing amount: {0}")]
     ParseFloatError(#[from] std::num::ParseFloatError),
+
+    #[error("Invalid date format: {0}")]
+    ParseDateError(#[from] chrono::format::ParseError),
 
     /// doc/8.1: Pokoušíte se soubor odeslat jako klasický POST a nikoli jako přílohu.
     /// Viz část 6.1 Parametry pro upload dat.
@@ -56,8 +59,12 @@ pub enum FioError {
     #[error("Výpis neexistuje")]
     ReportDoesNotExist,
 
+    /// Missing field in the first part of CSV response
+    #[error("Missing info field {0}")]
+    MissingInfoField(String),
+
     #[error("Other error, see log for details")]
-    OtherError{
+    OtherError {
         code: String,
         message: String,
     },
@@ -80,9 +87,9 @@ pub async fn parse_xml_error(response: reqwest::Response) -> FioError {
         Some(content_type) => {
             let content_type = content_type.to_str().unwrap_or("(invalid content type)");
             if content_type != "text/xml;charset=UTF-8" {
-                return FioError::OtherError { code: "bad_content_type".to_string(), message: format!("{:?}", content_type) }
+                return FioError::OtherError { code: "bad_content_type".to_string(), message: format!("{:?}", content_type) };
             }
-        },
+        }
     }
     let response = response.text().await.unwrap();
     log::trace!("RESPONSE: {}", response);
@@ -95,7 +102,7 @@ pub async fn parse_xml_error(response: reqwest::Response) -> FioError {
                 21 => FioError::ReportDoesNotExist,
                 _ => FioError::InternalServerError { code: xml.result.error_code, message: xml.result.message }
             }
-        },
+        }
         Err(e) => {
             FioError::OtherError { code: "xml-error".to_string(), message: format!("{:?}", e) }
         }

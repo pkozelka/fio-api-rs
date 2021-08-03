@@ -1,7 +1,7 @@
 use fio_api_rs::{FioClient, FioResponse};
 use fio_api_rs::export::{FioExportReq, ReportFormat};
 
-#[tokio::main(flavor="current_thread")]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     let token = std::fs::read_to_string(".git/fio-test-token")?;
     let fio = FioClient::new(&token);
@@ -10,15 +10,16 @@ async fn main() -> anyhow::Result<()> {
     println!("HTTP status: {}", response.status());
     let mut response = FioResponse::try_from(response).await?;
     let info = response.info()?;
-    println!("Account number {}/{} (IBAN: {})", info.account_id().unwrap(), info.bank_id().unwrap(), info.iban().unwrap());
-    println!("ID: {} .. {}", info.id_from().unwrap(), info.id_to().unwrap());
-    println!("Date: {} .. {}", info.date_start().unwrap()?, info.date_end().unwrap()?);
+    println!("Account number: {}/{} ({})", info.account_id()?, info.bank_id()?, info.currency()?);
+    println!("IBAN / BIC: {} / {}", info.iban()?, info.bic()?);
+    println!("ID: {} .. {}", info.id_from()?, info.id_to()?);
+    println!("Date: {} .. {}", info.date_start()?, info.date_end()?);
     println!("-- DATA --");
     for record in response.data()? {
         let record = record?;
         println!("{:?}", record);
     }
-    println!("Balance: {} .. {}", info.opening_balance().unwrap(), info.closing_balance().unwrap());
+    println!("Balance: {} .. {}", info.opening_balance()?, info.closing_balance()?);
     Ok(())
 }
 
