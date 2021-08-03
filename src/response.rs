@@ -76,6 +76,7 @@ impl FioResponse {
 
 const INFO_ACCOUNT_ID: &'static str = "accountId";
 const INFO_BANK_ID: &'static str = "bankId";
+const INFO_CURRENCY: &'static str = "currency";
 const INFO_IBAN: &'static str = "iban";
 const INFO_BIC: &'static str = "bic";
 const INFO_OPENING_BALANCE: &'static str = "openingBalance";
@@ -155,6 +156,9 @@ impl FioResponseInfo {
 
     pub fn bank_id(&self) -> Option<&str> {
         self.get_info(INFO_BANK_ID)
+    }
+    pub fn currency(&self) -> Option<&str> {
+        self.get_info(INFO_CURRENCY)
     }
 
     pub fn iban(&self) -> Option<&str> {
