@@ -13,23 +13,45 @@ use crate::FioError;
 
 const DATEFORMAT_DD_MM_YYYY: &str = "%d.%m.%Y";
 
+/// Translation of CSV response.
+/// The text will be typically received from calls to [Fio REST API](crate::export::FioExportReq):
+/// - [by_id](crate::export::FioExportReq::by_id)
+/// - [periods](crate::export::FioExportReq::periods)
+/// - [merchant](crate::export::FioExportReq::merchant)
+///
+/// Note that this object wraps a cursor, and therefore reads the data in the order in which they come.
+///
+/// It is expected to be used like this:
+///
+/// ```no_run
+/// use fio_api_rs::FioResponse;
+///
+/// let http_response = ...;
+/// let mut response = FioResponse::from(http_response);
+/// let info = response.info()?; // optional; get initial info so that it can be used after iteration
+/// let data = response.data()?; // get the iterator over records; consumes the response!
+/// // iterate over the rows
+/// for record in data {
+///     let record = record?;
+///     println!("{:?}", record);
+/// }
+/// // work with the info, which was read earlier
+/// println!("Balance: {} .. {}", info.opening_balance()?, info.closing_balance()?);
+/// ```
 pub struct FioResponse {
     cursor: Cursor<Vec<u8>>,
 }
 
 impl From<Cursor<Vec<u8>>> for FioResponse {
+    /// Wrap cursor as a [`FioResponse`].
+    /// This can be used for reading from a file or in-memory string.
     fn from(cursor: Cursor<Vec<u8>>) -> Self {
         Self { cursor }
     }
 }
 
 impl FioResponse {
-    pub fn new(cursor: Cursor<Vec<u8>>) -> std::io::Result<Self> {
-        let mut this = Self::from(cursor);
-        FioResponseInfo::skip(&mut this.cursor)?;
-        Ok(this)
-    }
-
+    /// Try to process a response from executing a [crate::export::FioExportReq] with [reqwest::Client].
     pub async fn try_from(response: Response) -> crate::Result<Self> {
         // analyze HTTP headers
         match response.status().as_u16() {

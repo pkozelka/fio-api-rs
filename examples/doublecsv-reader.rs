@@ -76,7 +76,7 @@ mod tests {
         let cursor = Cursor::new(content);
 
         // data part
-        let response = FioResponse::new(cursor)?;
+        let response = FioResponse::from(cursor);
         for r in response.data()? {
             let record: FioTransactionsRecord = r?;
             println!("{:?}", record);

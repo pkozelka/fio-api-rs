@@ -14,6 +14,7 @@ pub enum FioRequest {}
 
 const FIOAPI_URL_BASE: &'static str = "https://www.fio.cz/ib_api/rest";
 
+/// The low-level client that holds the token.
 pub struct FioClient {
     token: String,
     client: reqwest::Client,
