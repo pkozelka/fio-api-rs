@@ -3,12 +3,16 @@
         xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
     <Orders>
         <DomesticTransaction>
-            <accountFrom>2702016516</accountFrom>
+            <accountFrom>2301479755</accountFrom>
             <currency>CZK</currency>
-            <amount>100.00</amount>
-            <accountTo>2301479755</accountTo>
+            <amount>102.93</amount>
+            <accountTo>2702016516</accountTo>
             <bankCode>2010</bankCode>
-            <date>2021-08-04</date>
+            <vs>456</vs>
+            <ss>789</ss>
+            <messageForRecipient>test messageForRecipient</messageForRecipient>
+            <comment>test comment</comment>
+            <date>2021-08-06</date>
         </DomesticTransaction>
     </Orders>
 </Import>

@@ -10,35 +10,23 @@ use crate::FioClient;
 //
 
 impl FioClient {
-    pub async fn import(&self) -> reqwest::Result<Response> {
+    pub async fn import(&self, payment_xml: &str) -> reqwest::Result<Response> {
         // doc/6.1
-        let payment_xml = r#"<?xml version="1.0" encoding="UTF-8"?>
-<Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
-    <Orders>
-        <DomesticTransaction>
-            <accountFrom>2702016516</accountFrom>
-            <currency>CZK</currency>
-            <amount>100.00</amount>
-            <accountTo>2301479755</accountTo>
-            <bankCode>2010</bankCode>
-            <date>2021-08-04</date>
-        </DomesticTransaction>
-    </Orders>
-</Import>
-"#;
-        let part = Part::bytes(payment_xml.as_bytes())
-            .file_name("payment-orders.txt")
-            .mime_str("text/xml")?;
+        let part = Part::text(payment_xml.to_string())
+            .file_name("payments.xml")
+            .mime_str("application/xml")?;
         let form = Form::new()
-            .text("token", self.token.to_string())
             .text("type", "xml")
+            .text("token", self.token.to_string())
             .part("file", part)
             .text("lng", "en");
         let http_request = self.client
-            .post(format!("{url_base}/import/", url_base = crate::FIOAPI_URL_BASE))
+            .post(format!("{url_base}/import/",
+                          url_base = crate::FIOAPI_URL_BASE,
+                          // url_base = "http://localhost:1500", // for testing with `nc -l -p 1500`
+            ))
             .multipart(form)
             .build()?;
-
         self.client.execute(http_request).await
     }
 }
@@ -47,6 +35,12 @@ impl FioClient {
 mod tests {
     use crate::FioClient;
 
+    /// This test fails.
+    /// There are very subtle differences from doing this with CURL (which works fine), like:
+    /// - boundary string: curl has shorter, and begins with several dashes
+    /// - CURL uses header `Expect: 100-continue`, delaying the body with 1sec
+    /// - HTTP headers: reqwest uses lowercase names, and in different order
+    /// None of these differences should be significant, but one of them is probably the reason.
     #[tokio::test]
     #[ignore]
     async fn test_import() -> anyhow::Result<()> {
@@ -55,10 +49,11 @@ mod tests {
         std::env::set_var("RUST_LOG", "trace");
         pretty_env_logger::init();
 
-        let token = std::fs::read_to_string(".git/2702016516-hexakoss-rw.txt").unwrap();
+        let token = std::fs::read_to_string(".git/2301479755-OrigisINET-rw.txt")?;
+        let payment_xml = std::fs::read_to_string("examples/payment.xml")?;
         let fio = FioClient::new(&token);
-        println!("R:");
-        let response = fio.import().await?;
+        println!("R: {}", payment_xml);
+        let response = fio.import(&payment_xml).await?;
         println!("R1:");
         let text = response.text().await?;
         println!("Response: {}", text);

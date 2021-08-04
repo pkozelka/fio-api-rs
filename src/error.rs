@@ -127,6 +127,9 @@ struct FioResponseResult {
     /// * `12`: prázdný import - v souboru nejsou žádné příkazy
     /// * `13`: příliš dlouhý soubor - soubor je delší než 2 MB
     /// * `14`: prázdný soubor - soubor neobsahuje příkazy
+    ///
+    /// * errorCode="2001">Vaše uživatelské oprávnění nepovoluje podání pokynu z tohoto účtu
+    ///
     error_code: u16,
     /// číslo dávky - jednoznačný identifikátor dávky
     id_instruction: Option<String>,
