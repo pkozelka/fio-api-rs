@@ -6,8 +6,9 @@ use reqwest::Response;
 
 use crate::FioClient;
 
-// TODO
-//
+// TODO: support all payment types
+// TODO: define strict formats for payments
+// TODO: enhance error xml to receive all fields
 
 impl FioClient {
     pub async fn import(&self, payment_xml: &str) -> reqwest::Result<Response> {
@@ -21,10 +22,7 @@ impl FioClient {
             .part("file", part)
             .text("lng", "en");
         let http_request = self.client
-            .post(format!("{url_base}/import/",
-                          url_base = crate::FIOAPI_URL_BASE,
-                          // url_base = "http://localhost:1500", // for testing with `nc -l -p 1500`
-            ))
+            .post(format!("{url_base}/import/", url_base = crate::FIOAPI_URL_BASE))
             .multipart(form)
             .build()?;
         self.client.execute(http_request).await
@@ -35,12 +33,6 @@ impl FioClient {
 mod tests {
     use crate::FioClient;
 
-    /// This test fails.
-    /// There are very subtle differences from doing this with CURL (which works fine), like:
-    /// - boundary string: curl has shorter, and begins with several dashes
-    /// - CURL uses header `Expect: 100-continue`, delaying the body with 1sec
-    /// - HTTP headers: reqwest uses lowercase names, and in different order
-    /// None of these differences should be significant, but one of them is probably the reason.
     #[tokio::test]
     #[ignore]
     async fn test_import() -> anyhow::Result<()> {
@@ -51,7 +43,7 @@ mod tests {
 
         let token = std::fs::read_to_string(".git/2301479755-OrigisINET-rw.txt")?;
         let payment_xml = std::fs::read_to_string("examples/payment.xml")?;
-        let fio = FioClient::new(&token);
+        let fio = FioClient::new(token.trim());
         println!("R: {}", payment_xml);
         let response = fio.import(&payment_xml).await?;
         println!("R1:");
@@ -60,3 +52,5 @@ mod tests {
         Ok(())
     }
 }
+
+// Response: <?xml version="1.0" encoding="UTF-8" standalone="yes"?><responseImport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/responseImport.xsd"><result><errorCode>0</errorCode><idInstruction>1788006308</idInstruction><status>ok</status><sums><sum id="CZK"><sumCredit>0</sumCredit><sumDebet>102.93</sumDebet></sum></sums></result><ordersDetails><detail id="1"><messages><message status="ok" errorCode="0">OK</message></messages></detail></ordersDetails></responseImport>

@@ -10,9 +10,9 @@
             <bankCode>2010</bankCode>
             <vs>456</vs>
             <ss>789</ss>
+            <date>2021-08-06</date>
             <messageForRecipient>test messageForRecipient</messageForRecipient>
             <comment>test comment</comment>
-            <date>2021-08-06</date>
         </DomesticTransaction>
     </Orders>
 </Import>
