@@ -39,3 +39,4 @@ pub mod export;
 mod import;
 mod error;
 mod response;
+mod tiny_xml;
