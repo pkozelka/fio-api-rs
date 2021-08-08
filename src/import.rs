@@ -1,5 +1,6 @@
 //! doc/6: IMPORT (UPLOAD) PLATEBNÍCH PŘÍKAZŮ DO BANK
 
+use chrono::NaiveDate;
 use reqwest::multipart::Form;
 use reqwest::multipart::Part;
 use reqwest::Response;
@@ -29,9 +30,95 @@ impl FioClient {
     }
 }
 
+#[derive(Default, Debug)]
+struct Payment {
+    account_from: String,
+    currency: String,
+    amount: f64,
+    account_to: String,
+    bank_code: String,
+    ks: String,
+    vs: String,
+    ss: String,
+    date: Option<NaiveDate>,
+    message_for_recipient: String,
+    comment: String,
+}
+
+impl Payment {
+    pub fn account_from<S: Into<String>>(mut self, account_from: S) -> Self {
+        self.account_from = account_from.into();
+        self
+    }
+
+    pub fn currency<S: Into<String>>(mut self, currency: S) -> Self {
+        self.currency = currency.into();
+        self
+    }
+
+    pub fn amount(mut self, amount: f64) -> Self {
+        self.amount = amount;
+        self
+    }
+
+    pub fn account_to<S: Into<String>>(mut self, account_to: S) -> Self {
+        self.account_to = account_to.into();
+        self
+    }
+
+    pub fn bank_code<S: Into<String>>(mut self, bank_code: S) -> Self {
+        self.bank_code = bank_code.into();
+        self
+    }
+
+    pub fn ks<S: Into<String>>(mut self, ks: S) -> Self {
+        self.ks = ks.into();
+        self
+    }
+
+    pub fn vs<S: Into<String>>(mut self, vs: S) -> Self {
+        self.vs = vs.into();
+        self
+    }
+
+    pub fn ss<S: Into<String>>(mut self, ss: S) -> Self {
+        self.ss = ss.into();
+        self
+    }
+
+    pub fn date(mut self, date: NaiveDate) -> Self {
+        self.date = Some(date);
+        self
+    }
+
+    pub fn message_for_recipient<S: Into<String>>(mut self, message_for_recipient: S) -> Self {
+        self.message_for_recipient = message_for_recipient.into();
+        self
+    }
+
+    pub fn comment<S: Into<String>>(mut self, comment: S) -> Self {
+        self.comment = comment.into();
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use chrono::{Local, NaiveDate};
+
     use crate::FioClient;
+    use crate::import::Payment;
+
+    #[test]
+    fn test_payment_builder() {
+        let p = Payment::default()
+            .account_from("1234312")
+            .currency("1234234")
+            .amount(1234.56)
+            .date(Local::now().date().naive_local())
+            .account_to("5423");
+        let p = p.vs("123");
+    }
 
     #[tokio::test]
     #[ignore]
