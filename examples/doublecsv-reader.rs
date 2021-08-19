@@ -51,8 +51,8 @@ fn main() -> std::io::Result<()> {
 mod tests {
     use std::io::Cursor;
 
-    use fio_api_rs::{FioResponse, FioResponseInfo};
-    use fio_api_rs::csvdata::FioTransactionsRecord;
+    use fio_api::{FioResponse, FioResponseInfo};
+    use fio_api::csvdata::FioTransactionsRecord;
 
     #[test]
     fn test_cursor_twoparts() -> anyhow::Result<()> {

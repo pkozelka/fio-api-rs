@@ -1,5 +1,5 @@
-use fio_api_rs::{FioClient, FioResponse};
-use fio_api_rs::export::{FioExportReq, ReportFormat};
+use fio_api::{FioClient, FioResponse};
+use fio_api::export::{FioExportReq, ReportFormat};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -29,11 +29,11 @@ mod tests {
 
     use chrono::{Datelike, NaiveDate};
 
-    use fio_api_rs::export::{FioExportReq, ReportFormat, TxFormat};
-    use fio_api_rs::FioClient;
+    use fio_api::export::{FioExportReq, ReportFormat, TxFormat};
+    use fio_api::FioClient;
 
     fn fio_client() -> FioClient {
-        std::env::set_var("RUST_LOG", "fio_api_rs=trace");
+        std::env::set_var("RUST_LOG", "fio_api=trace");
         pretty_env_logger::init();
         let token = std::fs::read_to_string(".git/fio-test-token").unwrap();
         FioClient::new(&token)

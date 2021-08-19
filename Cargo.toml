@@ -1,5 +1,5 @@
 [package]
-name = "fio-api-rs"
+name = "fio-api"
 version = "0.1.0"
 edition = "2018"
 
