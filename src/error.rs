@@ -68,6 +68,9 @@ pub enum FioError {
         code: String,
         message: String,
     },
+
+    #[error("Unknown problem")]
+    Unknown,
 }
 
 /*

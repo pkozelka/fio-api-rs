@@ -1,11 +1,14 @@
 //! doc/6: IMPORT (UPLOAD) PLATEBNÍCH PŘÍKAZŮ DO BANK
 
+use std::fmt::Write;
+
 use chrono::NaiveDate;
 use reqwest::multipart::Form;
 use reqwest::multipart::Part;
 use reqwest::Response;
 
-use crate::FioClient;
+use crate::{FioClient, FioError};
+use crate::Result;
 
 // TODO: support all payment types
 // TODO: define strict formats for payments
@@ -28,6 +31,45 @@ impl FioClient {
             .build()?;
         self.client.execute(http_request).await
     }
+}
+
+pub trait ToPaymentXml {
+    fn to_payment_xml(&self) -> Result<String>;
+}
+
+impl ToPaymentXml for Payment {
+    fn to_payment_xml(&self) -> Result<String> {
+        let mut out = String::new();
+        writeln!(out, r#"<?xml version="1.0" encoding="UTF-8"?>
+<Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
+  <Orders>
+    <DomesticTransaction>
+"#).map_err(|e| FioError::Unknown)?;
+        //
+        write_elem(&mut out, "accountFrom", &self.account_from)?;
+        write_elem(&mut out, "currency", &self.currency)?;
+        write_elem(&mut out, "amount", &format!("{}", self.amount))?;
+        write_elem(&mut out, "accountTo", &self.account_to)?;
+        write_elem(&mut out, "bankCode", &self.bank_code)?;
+        write_elem(&mut out, "vs", &self.vs)?;
+
+        //
+        writeln!(out, r#"    </DomesticTransaction>
+  </Orders>
+</Import>
+"#).map_err(|e| FioError::Unknown)?;
+        Ok(out)
+    }
+}
+
+fn write_elem(out: &mut String, elem_name: &str, value: &str) -> Result<()> {
+    if value.is_empty() {
+        return Ok(());
+    }
+    writeln!(out, "  <{elem_name}>{value}</{elem_name}>",
+             elem_name = elem_name,
+             value = value, //TODO escape!!!
+    ).map_err(|e| FioError::Unknown)
 }
 
 #[derive(Default, Debug)]
