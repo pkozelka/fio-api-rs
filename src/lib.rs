@@ -5,6 +5,7 @@ use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 
 pub use error::FioError;
 pub use error::Result;
+pub use period::FioPeriod;
 pub use response::FioResponse;
 pub use response::FioResponseInfo;
 
@@ -40,3 +41,4 @@ mod import;
 mod error;
 mod response;
 mod tiny_xml;
+mod period;
