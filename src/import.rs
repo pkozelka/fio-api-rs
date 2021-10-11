@@ -44,7 +44,7 @@ impl ToPaymentXml for Payment {
 <Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
   <Orders>
     <DomesticTransaction>
-"#).map_err(|e| FioError::Unknown)?;
+"#).map_err(|_| FioError::Unknown)?;
         //
         write_elem(&mut out, "accountFrom", &self.account_from)?;
         write_elem(&mut out, "currency", &self.currency)?;
@@ -57,7 +57,7 @@ impl ToPaymentXml for Payment {
         writeln!(out, r#"    </DomesticTransaction>
   </Orders>
 </Import>
-"#).map_err(|e| FioError::Unknown)?;
+"#).map_err(|_| FioError::Unknown)?;
         Ok(out)
     }
 }
@@ -69,7 +69,7 @@ fn write_elem(out: &mut String, elem_name: &str, value: &str) -> Result<()> {
     writeln!(out, "  <{elem_name}>{value}</{elem_name}>",
              elem_name = elem_name,
              value = value, //TODO escape!!!
-    ).map_err(|e| FioError::Unknown)
+    ).map_err(|_| FioError::Unknown)
 }
 
 #[derive(Default, Debug)]
@@ -146,7 +146,7 @@ impl Payment {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Local, NaiveDate};
+    use chrono::Local;
 
     use crate::FioClient;
     use crate::import::Payment;
@@ -159,7 +159,7 @@ mod tests {
             .amount(1234.56)
             .date(Local::now().date().naive_local())
             .account_to("5423");
-        let p = p.vs("123");
+        let _ = p.vs("123");
     }
 
     #[tokio::test]
