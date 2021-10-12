@@ -1,11 +1,13 @@
 //! doc/5: EXPORT (DOWNLOAD) POHYBŮ A VÝPISŮ Z BANKY
 //!
-use crate::error::Result;
+use std::fmt::{Display, Formatter};
+
+use chrono::NaiveDate;
 use reqwest::Response;
 use strum_macros::IntoStaticStr;
 
 use crate::{FIOAPI_URL_BASE, FioClient, FioDatum};
-use chrono::NaiveDate;
+use crate::error::Result;
 
 /// 5.1 Supported transaction formats
 #[derive(IntoStaticStr)]
@@ -25,7 +27,7 @@ pub enum TxFormat {
 }
 
 /// 5.1 Supported report formats
-#[derive(IntoStaticStr)]
+#[derive(IntoStaticStr, Copy, Clone)]
 pub enum ReportFormat {
     #[strum(serialize = "csv")]
     Csv,
@@ -139,5 +141,11 @@ impl FioClient {
             .get(fio_req.build_url(&self.token))
             .build()?;
         self.client.execute(http_request).await
+    }
+}
+
+impl Display for ReportFormat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.into())
     }
 }
