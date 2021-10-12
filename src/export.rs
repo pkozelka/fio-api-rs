@@ -2,11 +2,12 @@
 //!
 use std::fmt::{Display, Formatter};
 
-use chrono::NaiveDate;
-use reqwest::Response;
+use chrono::{NaiveDate, NaiveDateTime};
+use reqwest::{Response, StatusCode};
 use strum_macros::IntoStaticStr;
+use tokio::time::Instant;
 
-use crate::{FIOAPI_URL_BASE, FioClient, FioDatum};
+use crate::{FIOAPI_URL_BASE, FioClient, FioDatum, FioError};
 use crate::error::Result;
 
 /// 5.1 Supported transaction formats
@@ -137,10 +138,31 @@ impl FioExportReq {
 
 impl FioClient {
     pub async fn export(&self, fio_req: FioExportReq) -> reqwest::Result<Response> {
-        let http_request = self.client
-            .get(fio_req.build_url(&self.token))
-            .build()?;
-        self.client.execute(http_request).await
+        loop {
+            let next_time = self.last_request.get() + super::REQUEST_RATE;
+            let now = Instant::now();
+            if now < next_time {
+                log::trace!("Delaying next call to FIO API; duration {}", next_time.duration_since(now).as_millis());
+                tokio::time::sleep_until(next_time).await;
+                self.last_request.set(next_time);
+            }
+            let http_request = self.client
+                .get(fio_req.build_url(&self.token))
+                .build()?;
+            let response = self.client.execute(http_request).await?;
+            match response.status() {
+                StatusCode::OK => {
+                    return Ok(response)
+                }
+                StatusCode::CONFLICT => {
+                    log::warn!("Retrying command '{}'", fio_req.command);
+                    self.last_request.set(Instant::now());
+                }
+                _ => {
+                    return response.error_for_status()
+                }
+            }
+        }
     }
 }
 
