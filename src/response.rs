@@ -20,7 +20,7 @@ use crate::error::parse_xml_error;
 ///
 /// It is expected to be used like this:
 ///
-/// ```no_run
+/// ```ignore
 /// use fio_api::FioResponse;
 ///
 /// let http_response = ...;
