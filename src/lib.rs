@@ -2,11 +2,10 @@
 //! TODO: use our own error enum
 
 pub use client::FioClient;
-pub use error::FioError;
-pub use error::Result;
+pub use error::{FioError, Result};
+pub use export::{FioExportReq, ReportFormat, TxFormat};
 pub use period::FioPeriod;
-pub use response::FioResponse;
-pub use response::FioResponseInfo;
+pub use response::{FioResponse, FioResponseInfo};
 
 type FioDatum = String;
 
@@ -20,8 +19,8 @@ mod tests {
     }
 }
 
-pub mod csvdata;
-pub mod export;
+mod csvdata;
+mod export;
 mod import;
 mod error;
 mod response;

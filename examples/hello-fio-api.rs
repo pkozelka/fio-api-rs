@@ -1,5 +1,5 @@
 use fio_api::{FioClient, FioResponse};
-use fio_api::export::{FioExportReq, ReportFormat};
+use fio_api::{FioExportReq, ReportFormat};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -29,7 +29,7 @@ mod tests {
 
     use chrono::{Datelike, NaiveDate};
 
-    use fio_api::export::{FioExportReq, ReportFormat, TxFormat};
+    use fio_api::{FioExportReq, ReportFormat, TxFormat};
     use fio_api::FioClient;
 
     fn fio_client() -> FioClient {
