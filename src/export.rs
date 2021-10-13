@@ -2,13 +2,11 @@
 //!
 use std::fmt::{Display, Formatter};
 
-use chrono::{NaiveDate, NaiveDateTime};
-use reqwest::{Response, StatusCode};
+use chrono::NaiveDate;
 use strum_macros::IntoStaticStr;
-use tokio::time::Instant;
 
-use crate::{FIOAPI_URL_BASE, FioClient, FioDatum, FioError};
 use crate::error::Result;
+use crate::FioDatum;
 
 /// 5.1 Supported transaction formats
 #[derive(IntoStaticStr)]
@@ -55,7 +53,7 @@ pub enum ReportFormat {
 }
 
 pub struct FioExportReq {
-    command: &'static str,
+    pub(crate) command: &'static str,
     params: String,
 }
 
@@ -127,42 +125,12 @@ impl FioExportReq {
         Ok(Self { command: "lastStatement", params: "statement".to_string() })
     }
 
-    fn build_url(&self, token: &str) -> String {
+    pub(crate) fn build_url(&self, token: &str) -> String {
         format!("{url_base}/{command}/{token}/{params}",
-                url_base = FIOAPI_URL_BASE,
+                url_base = crate::client::FIOAPI_URL_BASE,
                 command = self.command,
                 token = token,
                 params = self.params)
-    }
-}
-
-impl FioClient {
-    pub async fn export(&self, fio_req: FioExportReq) -> reqwest::Result<Response> {
-        loop {
-            let next_time = self.last_request.get() + super::REQUEST_RATE;
-            let now = Instant::now();
-            if now < next_time {
-                log::trace!("Delaying next call to FIO API; duration {}", next_time.duration_since(now).as_millis());
-                tokio::time::sleep_until(next_time).await;
-                self.last_request.set(next_time);
-            }
-            let http_request = self.client
-                .get(fio_req.build_url(&self.token))
-                .build()?;
-            let response = self.client.execute(http_request).await?;
-            match response.status() {
-                StatusCode::OK => {
-                    return Ok(response)
-                }
-                StatusCode::CONFLICT => {
-                    log::warn!("Retrying command '{}'", fio_req.command);
-                    self.last_request.set(Instant::now());
-                }
-                _ => {
-                    return response.error_for_status()
-                }
-            }
-        }
     }
 }
 

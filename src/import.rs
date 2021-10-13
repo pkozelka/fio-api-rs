@@ -3,35 +3,13 @@
 use std::fmt::Write;
 
 use chrono::NaiveDate;
-use reqwest::multipart::Form;
-use reqwest::multipart::Part;
-use reqwest::Response;
 
-use crate::{FioClient, FioError};
+use crate::FioError;
 use crate::Result;
 
 // TODO: support all payment types
 // TODO: define strict formats for payments
 // TODO: enhance error xml to receive all fields
-
-impl FioClient {
-    pub async fn import(&self, payment_xml: &str) -> reqwest::Result<Response> {
-        // doc/6.1
-        let part = Part::text(payment_xml.to_string())
-            .file_name("payments.xml")
-            .mime_str("application/xml")?;
-        let form = Form::new()
-            .text("type", "xml")
-            .text("token", self.token.to_string())
-            .part("file", part)
-            .text("lng", "en");
-        let http_request = self.client
-            .post(format!("{url_base}/import/", url_base = crate::FIOAPI_URL_BASE))
-            .multipart(form)
-            .build()?;
-        self.client.execute(http_request).await
-    }
-}
 
 pub trait ToPaymentXml {
     fn to_payment_xml(&self) -> Result<String>;
@@ -87,6 +65,7 @@ struct Payment {
     comment: String,
 }
 
+#[allow(unused)] //TODO use them
 impl Payment {
     pub fn account_from<S: Into<String>>(mut self, account_from: S) -> Self {
         self.account_from = account_from.into();
