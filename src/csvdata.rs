@@ -1,15 +1,17 @@
 use chrono::NaiveDate;
 use serde::Deserialize;
+use strum_macros::EnumString;
+use strum_macros::IntoStaticStr;
 
 #[derive(Debug, Deserialize)]
 pub struct FioTransactionsRecord {
-    #[serde(rename="ID pohybu")]
+    #[serde(rename = "ID pohybu")]
     id_tx: u64,
-    #[serde(rename="Datum", with="fio_date")]
+    #[serde(rename = "Datum", with = "fio_date")]
     date: NaiveDate,
-    #[serde(rename="Objem", with="fio_decimal")]
+    #[serde(rename = "Objem", with = "fio_decimal")]
     value: f64,
-    #[serde(rename="Měna")]
+    #[serde(rename = "Měna")]
     currency: String,
     #[serde(rename="Protiúčet")]
     b_account: String,
@@ -43,14 +45,99 @@ pub struct FioTransactionsRecord {
     id_command: u64,
 }
 
-#[derive(Debug, Deserialize)]
+/// 5.1 Podporované formáty dat / Typy pohybů na účtu
+#[derive(Debug, Deserialize, IntoStaticStr, EnumString)]
 pub enum TxType {
-    // Platba kartou
-    CardPayment,
-    // Příjem převodem uvnitř banky
+    #[strum(serialize = "Příjem převodem uvnitř banky")]
     FioIncome,
+    #[strum(serialize = "Platba převodem uvnitř banky")]
+    X02,
+    #[strum(serialize = "Vklad pokladnou")]
+    X03,
+    #[strum(serialize = "Výběr pokladnou")]
+    X04,
+    #[strum(serialize = "Vklad v hotovosti")]
+    X05,
+    #[strum(serialize = "Výběr v hotovosti")]
+    X06,
+    #[strum(serialize = "Platba")]
+    X07,
+    #[strum(serialize = "Příjem")]
+    CardPayment,
+    #[strum(serialize = "Bezhotovostní platba")]
+    X09,
+    #[strum(serialize = "Bezhotovostní příjem")]
+    X10,
+    #[strum(serialize = "Platba kartou")]
+    X11,
+    // this variant has duplicate text with X08.CardPayment and can never be instantiated
+    // #[strum(serialize = "Bezhotovostní platba")]
+    // X12,
+    #[strum(serialize = "Úrok z úvěru")]
+    X13,
+    #[strum(serialize = "Sankční poplatek")]
+    X14,
+    #[strum(serialize = "Posel – předání")] //TODO attention this is not a dash!
+    X15,
+    #[strum(serialize = "Posel – příjem")]
+    X16,
+    #[strum(serialize = "Převod uvnitř konta")]
+    X17,
+    #[strum(serialize = "Připsaný úrok")]
+    X18,
+    #[strum(serialize = "Vyplacený úrok")]
+    X19,
+    #[strum(serialize = "Odvod daně z úroků")]
+    X20,
+    #[strum(serialize = "Evidovaný úrok")]
+    X21,
+    #[strum(serialize = "Poplatek")]
+    X22,
+    #[strum(serialize = "Evidovaný poplatek")]
+    X23,
+    #[strum(serialize = "Převod mezi bankovními konty (platba)")]
+    X24,
+    #[strum(serialize = "Převod mezi bankovními konty (příjem)")]
+    X25,
+    #[strum(serialize = "Neidentifikovaná platba z bankovního konta")]
+    X26,
+    #[strum(serialize = "Neidentifikovaný příjem na bankovní konto")]
+    X27,
+    #[strum(serialize = "Vlastní platba z bankovního konta")]
+    X28,
+    #[strum(serialize = "Vlastní příjem na bankovní konto")]
+    X29,
+    #[strum(serialize = "Vlastní platba pokladnou")]
+    X30,
+    #[strum(serialize = "Vlastní příjem pokladnou")]
+    X31,
+    #[strum(serialize = "Opravný pohyb")]
+    X32,
+    #[strum(serialize = "Přijatý poplatek")]
+    X33,
+    #[strum(serialize = "Platba v jiné měně")]
+    X34,
+    #[strum(serialize = "Poplatek – platební karta")]
+    X35,
+    #[strum(serialize = "Inkaso")]
+    X36,
+    #[strum(serialize = "Inkaso ve prospěch účtu")]
+    X37,
+    #[strum(serialize = "Inkaso z účtu")]
+    X38,
+    #[strum(serialize = "Příjem inkasa z cizí banky")]
+    X39,
+    // this variant has duplicate text with X21 and can never be instantiated
+    // #[strum(serialize = "Evidovaný úrok")]
+    // X40,
+    #[strum(serialize = "Okamžitá příchozí platba")]
+    X41,
+    #[strum(serialize = "Okamžitá odchozí platba")]
+    X42,
+    #[strum(serialize = "Poplatek - pojištění hypotéky")]
+    X43,
     //
-    Other(String)
+    Other(String),
 }
 
 pub(crate) mod fio_date {
@@ -104,6 +191,8 @@ pub(crate) mod fio_decimal {
 }
 
 mod fio_txtype {
+    use std::str::FromStr;
+
     use serde::{Deserialize, Deserializer};
 
     use crate::csvdata::TxType;
@@ -112,12 +201,7 @@ mod fio_txtype {
         where D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-            "Platba kartou" => Ok(TxType::CardPayment),
-            "Příjem převodem uvnitř banky" => Ok(TxType::FioIncome),
-            //TODO use some clever macro to support all values
-            _ => Ok(TxType::Other(s))
-        }
+        TxType::from_str(&s).or(Ok(TxType::Other(s)))
     }
 }
 
