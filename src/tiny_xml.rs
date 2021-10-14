@@ -22,14 +22,14 @@
 use std::io::Result;
 use std::io::Write;
 
-pub struct DirtyXml {
+pub struct TinyXml {
     output: Vec<u8>,
     open_elements: Vec<String>,
 }
 
 pub type Attribute<'a> = (&'a str, &'a str);
 
-impl DirtyXml {
+impl TinyXml {
     pub fn new() -> Result<Self> {
         let mut output = Vec::new();
         writeln!(output, r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#)?;
@@ -61,7 +61,9 @@ impl DirtyXml {
     }
 
     /// Adds an element with simple text content.
+    /// Does nothing if the text is empty.
     pub fn simple(&mut self, elem: &str, text: &str) -> Result<()> {
+        if text.is_empty() { return Ok(()) }
         self.indent()?;
         writeln!(self.output, "<{elem}>{text}</{elem}>",
                  elem = elem,
@@ -107,11 +109,11 @@ fn escape_textcontent(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::tiny_xml::DirtyXml;
+    use crate::tiny_xml::TinyXml;
 
     #[test]
     fn test_doc() -> anyhow::Result<()> {
-        let mut doc = DirtyXml::new()?;
+        let mut doc = TinyXml::new()?;
         doc.open_attrs("Import", &[
             ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance"),
             ("xsi:noNamespaceSchemaLocation", "http://www.fio.cz/schema/importIB.xsd"),

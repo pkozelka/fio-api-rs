@@ -1,11 +1,9 @@
 //! doc/6: IMPORT (UPLOAD) PLATEBNÍCH PŘÍKAZŮ DO BANK
 
-use std::fmt::Write;
-
 use chrono::NaiveDate;
 
-use crate::FioError;
 use crate::Result;
+use crate::tiny_xml::TinyXml;
 
 // TODO: support all payment types
 // TODO: define strict formats for payments
@@ -17,42 +15,28 @@ pub trait ToPaymentXml {
 
 impl ToPaymentXml for Payment {
     fn to_payment_xml(&self) -> Result<String> {
-        let mut out = String::new();
-        write!(out, r#"<?xml version="1.0" encoding="UTF-8"?>
-<Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
-<Orders>
-<DomesticTransaction>
-"#).map_err(|_| FioError::Unknown)?;
-        //
-        write_elem(&mut out, "accountFrom", &self.account_from)?;
-        write_elem(&mut out, "currency", &self.currency)?;
-        write_elem(&mut out, "amount", &format!("{}", self.amount))?;
-        write_elem(&mut out, "accountTo", &self.account_to)?;
-        write_elem(&mut out, "bankCode", &self.bank_code)?;
-        write_elem(&mut out, "ks", &self.ks)?;
-        write_elem(&mut out, "vs", &self.vs)?;
-        write_elem(&mut out, "ss", &self.ss)?;
-        write_elem(&mut out, "date", &self.date.unwrap().to_string())?;
-        write_elem(&mut out, "messageForRecipient", &self.message_for_recipient)?;
-        write_elem(&mut out, "comment", &self.comment)?;
+        let mut doc = TinyXml::new()?;
+        doc.open_attrs("Import", &[
+            ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+            ("xsi:noNamespaceSchemaLocation", "http://www.fio.cz/schema/importIB.xsd"),
+        ])?;
+        doc.open("Orders")?;
+        doc.open("DomesticTransaction")?;
 
-        //
-        writeln!(out, r#"</DomesticTransaction>
-</Orders>
-</Import>
-"#).map_err(|_| FioError::Unknown)?;
-        Ok(out)
-    }
-}
+        doc.simple("accountFrom", &self.account_from)?;
+        doc.simple("currency", &self.currency)?;
+        doc.simple("amount", &format!("{}", self.amount))?;
+        doc.simple("accountTo", &self.account_to)?;
+        doc.simple("bankCode", &self.bank_code)?;
+        doc.simple("ks", &self.ks)?;
+        doc.simple("vs", &self.vs)?;
+        doc.simple("ss", &self.ss)?;
+        doc.simple("date", &self.date.unwrap().to_string())?;
+        doc.simple("messageForRecipient", &self.message_for_recipient)?;
+        doc.simple("comment", &self.comment)?;
 
-fn write_elem(out: &mut String, elem_name: &str, value: &str) -> Result<()> {
-    if value.is_empty() {
-        return Ok(());
+        Ok(doc.into_xml()?)
     }
-    writeln!(out, "  <{elem_name}>{value}</{elem_name}>",
-             elem_name = elem_name,
-             value = value, //TODO escape!!!
-    ).map_err(|_| FioError::Unknown)
 }
 
 #[derive(Default, Debug)]
@@ -72,7 +56,6 @@ pub struct Payment {
     payment_type: Option<u32>,
 }
 
-#[allow(unused)] //TODO use them
 impl Payment {
     /// (mandatory, 16n) číslo účtu příkazce
     pub fn account_from<S: Into<String>>(mut self, account_from: S) -> Self {
