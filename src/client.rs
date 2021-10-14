@@ -6,7 +6,7 @@ use reqwest::multipart::{Form, Part};
 use tokio::time::Duration;
 use tokio::time::Instant;
 
-use crate::export::FioExportReq;
+use crate::FioExportReq;
 
 pub(crate) const FIOAPI_URL_BASE: &'static str = "https://www.fio.cz/ib_api/rest";
 const REQUEST_RATE: Duration = Duration::from_secs(30);
@@ -49,14 +49,15 @@ impl FioClient {
             let response = self.client.execute(http_request).await?;
             match response.status() {
                 StatusCode::OK => {
-                    return Ok(response)
+                    return Ok(response);
                 }
                 StatusCode::CONFLICT => {
-                    log::warn!("Retrying command '{}'", fio_req.command);
+                    let censored_cmd = fio_req.build_url("*CENSORED*");
+                    log::warn!("Retrying command '{}'", censored_cmd);
                     self.last_request.set(Instant::now());
                 }
                 _ => {
-                    return response.error_for_status()
+                    return response.error_for_status();
                 }
             }
         }
