@@ -121,8 +121,22 @@ mod tests {
         doc.simple("accountFrom", "1234562")?;
         doc.simple("currency", "CZK")?;
         doc.simple("comment", r#""Vaše" označení & naše <po>kusy"#)?;
-        doc.open_attrs("test", &[("hello", "earth & <M>ars")])?;
-        println!("{}", doc.into_xml()?);
+        doc.open_attrs("test", &[("hello", r#""earth" & <M>ars"#)])?;
+        let xml_string = doc.into_xml()?;
+        let expected_xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Import xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/importIB.xsd">
+ <Orders>
+  <DomesticTransaction>
+   <accountFrom>1234562</accountFrom>
+   <currency>CZK</currency>
+   <comment>"Vaše" označení &amp; naše &lt;po&gt;kusy</comment>
+   <test hello="&quot;earth&quot; &amp; &lt;M&gt;ars">
+   </test>
+  </DomesticTransaction>
+ </Orders>
+</Import>
+"#;
+        assert_eq!(expected_xml, xml_string);
         Ok(())
     }
 }

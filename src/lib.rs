@@ -1,5 +1,4 @@
 //! FIO API library
-//! TODO: use our own error enum
 
 pub use client::FioClient;
 pub use error::{FioError, Result};
