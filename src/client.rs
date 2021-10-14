@@ -1,12 +1,13 @@
 use std::cell::Cell;
 
-use reqwest::{Response, StatusCode};
+use reqwest::{Response, StatusCode, Version};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::multipart::{Form, Part};
 use tokio::time::Duration;
 use tokio::time::Instant;
 
 use crate::FioExportReq;
+use crate::import::ToPaymentXml;
 
 pub(crate) const FIOAPI_URL_BASE: &'static str = "https://www.fio.cz/ib_api/rest";
 const REQUEST_RATE: Duration = Duration::from_secs(30);
@@ -63,23 +64,27 @@ impl FioClient {
         }
     }
 
-    /// Import commands - like payments.
+    /// // doc/6.1 Import commands - like payments.
     /// TODO: make symmetrical to [export].
-    pub async fn import(&self, payment_xml: &str) -> reqwest::Result<Response> {
-        // doc/6.1
+    pub async fn import<P: ToPaymentXml>(&self, payment: P) -> reqwest::Result<Response> {
+        let payment_xml = payment.to_payment_xml().unwrap();
+        log::trace!("payment_xml:\n{}", payment_xml);
         let part = Part::text(payment_xml.to_string())
             .file_name("payments.xml")
             .mime_str("application/xml")?;
         let form = Form::new()
             .text("type", "xml")
+            // .text("lng", "en")
             .text("token", self.token.to_string())
-            .part("file", part)
-            .text("lng", "en");
+            .part("file", part);
         let http_request = self.client
             .post(format!("{url_base}/import/", url_base = FIOAPI_URL_BASE))
+            .version(Version::HTTP_11)
             .multipart(form)
             .build()?;
-        self.client.execute(http_request).await
+        log::trace!("HTTP Request: {:?}", http_request);
+        let response = self.client.execute(http_request).await?;
+        response.error_for_status()
     }
 }
 
