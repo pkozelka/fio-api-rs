@@ -35,40 +35,46 @@ mod tests {
 
     use chrono::{Datelike, NaiveDate};
 
-    use fio_api::{FioClient, FioExportReq, Payment, ReportFormat, TxFormat};
+    use fio_api::{FioClient, FioClientWithImport, FioExportReq, ReportFormat, TxFormat};
 
-    fn fio_client_rw() -> (FioClient, String, String) {
+    fn init_logging() {
         std::env::set_var("RUST_LOG", "trace, fio_api=trace");
-        pretty_env_logger::init();
-        let path = PathBuf::from_str(".git/fio-test-token").unwrap();
-        let path = path.canonicalize().unwrap();
-        let path = path.as_path();
-        let fname = path.file_name().unwrap().to_string_lossy();
-        let fnparts: Vec<_> = fname.split(".").collect();
-        let token = std::fs::read_to_string(path).unwrap();
-        match fnparts.as_slice() {
-            ["fio", acnt, curr, ..] => {
-                let fio = FioClient::new(&token);
-                (fio, acnt.to_string(), curr.to_string())
-            },
-            _ => panic!("Effective filename does not come in form 'fio.<account>.<currency>.WHATEVER': '{}'", fname)
-        }
+        let _ = pretty_env_logger::try_init();
+    }
+
+    /// Read FIO token mean for the development testing.
+    fn read_devtest_token() -> std::io::Result<(String, PathBuf)> {
+        let path = PathBuf::from(".git/fio-test-token");
+        let path = path.canonicalize()?;
+        let token = std::fs::read_to_string(&path)?;
+        Ok((token, path))
     }
 
     fn fio_client() -> FioClient {
-        let (fio, _, _) = fio_client_rw();
-        fio
+        let (token, _) = read_devtest_token().unwrap();
+        FioClient::new(&token)
+    }
+
+    fn fio_client_rw() -> FioClientWithImport {
+        init_logging();
+        let (token, path) = read_devtest_token().unwrap();
+        let fname = path.file_name().unwrap().to_string_lossy();
+        let fnparts: Vec<_> = fname.split(".").collect();
+        match fnparts.as_slice() {
+            ["fio", account_from, currency, .., "token"] => {
+                let fio = FioClient::new(&token);
+                FioClientWithImport::new(fio, account_from, currency)
+            }
+            _ => panic!("Effective filename does not come in form 'fio.<account>.<currency>.WHATEVER.token': '{}'", fname)
+        }
     }
 
     #[tokio::test]
     #[ignore]
     async fn test_import_czk_payment() {
         // curl -S --trace-ascii - -X POST -F "type=xml" -F "token=$(cat .git/fio-test-token)" -F "file=@examples/payment.xml" https://www.fio.cz/ib_api/rest/import/
-        let (fio, account_from, currency) = fio_client_rw();
-        let payment = Payment::default()
-            .date(chrono::Local::now().date().naive_local())
-            .account_from(account_from)
-            .currency(currency)
+        let fio = fio_client_rw();
+        let payment = fio.new_payment()
             .amount(321.45)
             .account_to("2702016516")
             .vs("20")

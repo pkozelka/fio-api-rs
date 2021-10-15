@@ -6,7 +6,7 @@ use reqwest::multipart::{Form, Part};
 use tokio::time::Duration;
 use tokio::time::Instant;
 
-use crate::FioExportReq;
+use crate::{FioExportReq, Payment};
 use crate::import::ToPaymentXml;
 
 pub(crate) const FIOAPI_URL_BASE: &'static str = "https://www.fio.cz/ib_api/rest";
@@ -17,6 +17,12 @@ pub struct FioClient {
     token: String,
     last_request: Cell<Instant>,
     client: reqwest::Client,
+}
+
+pub struct FioClientWithImport {
+    fio: FioClient,
+    account_from: String,
+    currency: String,
 }
 
 impl FioClient {
@@ -63,9 +69,20 @@ impl FioClient {
             }
         }
     }
+}
 
-    /// // doc/6.1 Import commands - like payments.
-    /// TODO: make symmetrical to [export].
+impl FioClientWithImport {
+    /// Construct a client capable of proposing paymetns via the API.
+    /// In addition to [`FioClient`], it also needs to know the related account number and currency.
+    pub fn new(fio: FioClient, account_from: &str, currency: &str) -> Self {
+        Self {
+            fio,
+            account_from: account_from.to_string(),
+            currency: currency.to_string(),
+        }
+    }
+
+    /// doc/6.1 Import commands - like payments.
     pub async fn import<P: ToPaymentXml>(&self, payment: P) -> reqwest::Result<Response> {
         let payment_xml = payment.to_payment_xml().unwrap();
         log::trace!("payment_xml:\n{}", payment_xml);
@@ -75,16 +92,21 @@ impl FioClient {
         let form = Form::new()
             .text("type", "xml")
             // .text("lng", "en")
-            .text("token", self.token.to_string())
+            .text("token", self.fio.token.to_string())
             .part("file", part);
-        let http_request = self.client
+        let http_request = self.fio.client
             .post(format!("{url_base}/import/", url_base = FIOAPI_URL_BASE))
             .version(Version::HTTP_11)
             .multipart(form)
             .build()?;
         log::trace!("HTTP Request: {:?}", http_request);
-        let response = self.client.execute(http_request).await?;
+        let response = self.fio.client.execute(http_request).await?;
         response.error_for_status()
+    }
+
+    /// Create a payment with account info pre-filled.
+    pub fn new_payment(&self) -> Payment {
+        Payment::new(&self.account_from, &self.currency)
     }
 }
 

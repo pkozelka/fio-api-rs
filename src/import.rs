@@ -56,7 +56,19 @@ pub struct Payment {
     payment_type: Option<u32>,
 }
 
+fn today() -> NaiveDate {
+    chrono::Local::now().date().naive_local()
+}
+
 impl Payment {
+    pub fn new(account_from: &str, currency: &str) -> Self {
+        Self {
+            account_from: account_from.to_string(),
+            currency: currency.to_string(),
+            date: Some(today()),
+            ..Default::default()
+        }
+    }
     /// (mandatory, 16n) číslo účtu příkazce
     pub fn account_from<S: Into<String>>(mut self, account_from: S) -> Self {
         self.account_from = account_from.into();

@@ -1,6 +1,6 @@
 //! FIO API library
 
-pub use client::FioClient;
+pub use client::{FioClient, FioClientWithImport};
 pub use error::{FioError, Result};
 pub use export::{FioExportReq, ReportFormat, TxFormat};
 pub use import::Payment;
