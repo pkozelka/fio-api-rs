@@ -50,22 +50,14 @@ impl FioClient {
                 tokio::time::sleep_until(next_time).await;
                 self.last_request.set(next_time);
             }
+            log::trace!("Trying '{}'", fio_req.build_url("__CENSORED__"));
             let http_request = self.client
                 .get(fio_req.build_url(&self.token))
                 .build()?;
             let response = self.client.execute(http_request).await?;
             match response.status() {
-                StatusCode::OK => {
-                    return Ok(response);
-                }
-                StatusCode::CONFLICT => {
-                    let censored_cmd = fio_req.build_url("*CENSORED*");
-                    log::warn!("Retrying command '{}'", censored_cmd);
-                    self.last_request.set(Instant::now());
-                }
-                _ => {
-                    return response.error_for_status();
-                }
+                StatusCode::CONFLICT => self.last_request.set(Instant::now()),
+                _ => return response.error_for_status()
             }
         }
     }

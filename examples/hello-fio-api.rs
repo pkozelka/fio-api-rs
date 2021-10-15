@@ -38,7 +38,7 @@ mod tests {
     use fio_api::{FioClient, FioClientWithImport, FioExportReq, ReportFormat, TxFormat};
 
     fn init_logging() {
-        std::env::set_var("RUST_LOG", "trace, fio_api=trace");
+        std::env::set_var("RUST_LOG", "info,hello_fio_api=debug,fio_api=trace");
         let _ = pretty_env_logger::try_init();
     }
 
@@ -50,13 +50,14 @@ mod tests {
         Ok((token, path))
     }
 
+    /// Construct simple, read-only client
     fn fio_client() -> FioClient {
         let (token, _) = read_devtest_token().unwrap();
         FioClient::new(&token)
     }
 
+    /// Construct a RW client, taking the account number and currency from the effective filename (behind the symlink)
     fn fio_client_rw() -> FioClientWithImport {
-        init_logging();
         let (token, path) = read_devtest_token().unwrap();
         let fname = path.file_name().unwrap().to_string_lossy();
         let fnparts: Vec<_> = fname.split(".").collect();
@@ -72,6 +73,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_import_czk_payment() {
+        init_logging();
         // curl -S --trace-ascii - -X POST -F "type=xml" -F "token=$(cat .git/fio-test-token)" -F "file=@examples/payment.xml" https://www.fio.cz/ib_api/rest/import/
         let fio = fio_client_rw();
         let payment = fio.new_payment()
@@ -91,6 +93,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_by_id() {
+        init_logging();
         let fio = fio_client();
         let now = chrono::Utc::now();
         let (year, id): (u16, u8) = if now.month() == 1 {
@@ -107,6 +110,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_periods() {
+        init_logging();
         let fio = fio_client();
         let date_start = NaiveDate::from_str("2021-01-01").unwrap();
         let date_end = NaiveDate::from_str("2021-03-31").unwrap();
@@ -119,6 +123,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_merchant() {
+        init_logging();
         let fio = fio_client();
         let date_start = NaiveDate::from_str("2021-01-01").unwrap();
         let date_end = NaiveDate::from_str("2021-06-30").unwrap();
@@ -131,6 +136,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_last() {
+        init_logging();
         let fio = fio_client();
         let req = FioExportReq::Last { format: TxFormat::Csv };
         let response = fio.export(req).await.unwrap();
@@ -141,6 +147,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_last_statement() {
+        init_logging();
         let fio = fio_client();
         let req = FioExportReq::LastStatement;
         let response = fio.export(req).await.unwrap();
