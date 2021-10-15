@@ -9,36 +9,6 @@ use crate::tiny_xml::TinyXml;
 // TODO: define strict formats for payments
 // TODO: enhance error xml to receive all fields
 
-pub trait ToPaymentXml {
-    fn to_payment_xml(&self) -> Result<String>;
-}
-
-impl ToPaymentXml for Payment {
-    fn to_payment_xml(&self) -> Result<String> {
-        let mut doc = TinyXml::new()?;
-        doc.open_attrs("Import", &[
-            ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance"),
-            ("xsi:noNamespaceSchemaLocation", "http://www.fio.cz/schema/importIB.xsd"),
-        ])?;
-        doc.open("Orders")?;
-        doc.open("DomesticTransaction")?;
-
-        doc.simple("accountFrom", &self.account_from)?;
-        doc.simple("currency", &self.currency)?;
-        doc.simple("amount", &format!("{}", self.amount))?;
-        doc.simple("accountTo", &self.account_to)?;
-        doc.simple("bankCode", &self.bank_code)?;
-        doc.simple("ks", &self.ks)?;
-        doc.simple("vs", &self.vs)?;
-        doc.simple("ss", &self.ss)?;
-        doc.simple("date", &self.date.unwrap().to_string())?;
-        doc.simple("messageForRecipient", &self.message_for_recipient)?;
-        doc.simple("comment", &self.comment)?;
-
-        Ok(doc.into_xml()?)
-    }
-}
-
 #[derive(Default, Debug)]
 pub struct Payment {
     account_from: String,
@@ -150,4 +120,56 @@ impl Payment {
         self.payment_type = Some(payment_type);
         self
     }
+
+    fn add_domestic_transaction(&self, doc: &mut TinyXml) -> Result<()> {
+        doc.open("DomesticTransaction")?;
+
+        doc.simple("accountFrom", &self.account_from)?;
+        doc.simple("currency", &self.currency)?;
+        doc.simple("amount", &format!("{}", self.amount))?;
+        doc.simple("accountTo", &self.account_to)?;
+        doc.simple("bankCode", &self.bank_code)?;
+        doc.simple("ks", &self.ks)?;
+        doc.simple("vs", &self.vs)?;
+        doc.simple("ss", &self.ss)?;
+        doc.simple("date", &self.date.unwrap().to_string())?;
+        doc.simple("messageForRecipient", &self.message_for_recipient)?;
+        doc.simple("comment", &self.comment)?;
+
+        doc.close()?;
+        Ok(())
+    }
 }
+
+pub trait ToPaymentXml {
+    fn to_payment_xml(&self) -> Result<String>;
+}
+
+fn new_orders_doc() -> Result<TinyXml> {
+    let mut doc = TinyXml::new()?;
+    doc.open_attrs("Import", &[
+        ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+        ("xsi:noNamespaceSchemaLocation", "http://www.fio.cz/schema/importIB.xsd"),
+    ])?;
+    doc.open("Orders")?;
+    Ok(doc)
+}
+
+impl ToPaymentXml for Payment {
+    fn to_payment_xml(&self) -> Result<String> {
+        let mut doc = new_orders_doc()?;
+        self.add_domestic_transaction(&mut doc)?;
+        Ok(doc.into_xml()?)
+    }
+}
+
+impl ToPaymentXml for &[Payment] {
+    fn to_payment_xml(&self) -> Result<String> {
+        let mut doc = new_orders_doc()?;
+        for payment in self.iter() {
+            payment.add_domestic_transaction(&mut doc)?;
+        }
+        Ok(doc.into_xml()?)
+    }
+}
+

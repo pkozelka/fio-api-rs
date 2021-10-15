@@ -92,6 +92,32 @@ mod tests {
 
     #[tokio::test]
     #[ignore]
+    async fn test_import_czk_two_payments() {
+        init_logging();
+        // curl -S --trace-ascii - -X POST -F "type=xml" -F "token=$(cat .git/fio-test-token)" -F "file=@examples/payment.xml" https://www.fio.cz/ib_api/rest/import/
+        let fio = fio_client_rw();
+        let payments = vec![
+            fio.new_payment()
+                .amount(321.45)
+                .account_to("2702016516")
+                .vs("123")
+                .bank_code("2010")
+                .comment("T1")
+                .message_for_recipient("t1"),
+            fio.new_payment()
+                .amount(123.45)
+                .account_to("2702016516")
+                .bank_code("2010")
+                .vs("1010110101"),
+        ];
+        let r = fio.import(payments.as_slice()).await.unwrap();
+        println!("Payment Response:\nStatus={}\n {:?}", r.status(), r);
+        let text = r.text().await.unwrap();
+        println!("Response Text: {}", text);
+    }
+
+    #[tokio::test]
+    #[ignore]
     async fn test_by_id() {
         init_logging();
         let fio = fio_client();
