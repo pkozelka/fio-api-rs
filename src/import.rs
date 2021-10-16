@@ -9,8 +9,19 @@ use crate::tiny_xml::TinyXml;
 // TODO: define strict formats for payments
 // TODO: enhance error xml to receive all fields
 
-#[derive(Default, Debug)]
-pub struct Payment {
+pub trait ToPaymentXml {
+    fn to_payment_xml(&self) -> Result<String>;
+}
+
+pub(crate) fn today() -> NaiveDate {
+    chrono::Local::now().date().naive_local()
+}
+
+
+/// XML příkaz platba v rámci ČR
+/// Tento pokyn je možné použít i k převodu cízích měn mezi účty v rámci Fio banky.
+#[derive(Debug)]
+pub struct DomesticPayment {
     account_from: String,
     currency: String,
     amount: f64,
@@ -19,38 +30,45 @@ pub struct Payment {
     ks: String,
     vs: String,
     ss: String,
-    date: Option<NaiveDate>,
+    date: NaiveDate,
     message_for_recipient: String,
     comment: String,
     payment_reason: Option<u16>,
     payment_type: Option<u32>,
 }
 
-fn today() -> NaiveDate {
-    chrono::Local::now().date().naive_local()
+impl Default for DomesticPayment {
+    fn default() -> Self {
+        Self {
+            account_from: Default::default(),
+            currency: Default::default(),
+            amount: f64::NAN,
+            account_to: Default::default(),
+            bank_code: Default::default(),
+            ks: Default::default(),
+            vs: Default::default(),
+            ss: Default::default(),
+            date: today(),
+            message_for_recipient: Default::default(),
+            comment: Default::default(),
+            payment_reason: None,
+            payment_type: None,
+        }
+    }
 }
 
-impl Payment {
-    pub fn new(account_from: &str, currency: &str) -> Self {
+impl DomesticPayment {
+    /// * `account_from` : (mandatory, 16n) číslo účtu příkazce
+    /// * `currency` : (mandatory, 3!x) měna účtu dle standardu ISO 4217
+    /// * `date` : (mandatory, RRRR-MM-DD) datum
+    pub fn new(account_from: &str, currency: &str, date: NaiveDate) -> Self {
         Self {
             account_from: account_from.to_string(),
             currency: currency.to_string(),
-            date: Some(today()),
+            date,
             ..Default::default()
         }
     }
-    /// (mandatory, 16n) číslo účtu příkazce
-    pub fn account_from<S: Into<String>>(mut self, account_from: S) -> Self {
-        self.account_from = account_from.into();
-        self
-    }
-
-    /// (mandatory, 3!x) měna účtu dle standardu ISO 4217
-    pub fn currency<S: Into<String>>(mut self, currency: S) -> Self {
-        self.currency = currency.into();
-        self
-    }
-
     /// (mandatory, 18d) částka příkazu
     pub fn amount(mut self, amount: f64) -> Self {
         self.amount = amount;
@@ -87,12 +105,6 @@ impl Payment {
         self
     }
 
-    /// (mandatory, RRRR-MM-DD) datum
-    pub fn date(mut self, date: NaiveDate) -> Self {
-        self.date = Some(date);
-        self
-    }
-
     /// (optional, 140i) zpráva pro příjemce
     pub fn message_for_recipient<S: Into<String>>(mut self, message_for_recipient: S) -> Self {
         self.message_for_recipient = message_for_recipient.into();
@@ -121,7 +133,7 @@ impl Payment {
         self
     }
 
-    fn add_domestic_transaction(&self, doc: &mut TinyXml) -> Result<()> {
+    fn add_to(&self, doc: &mut TinyXml) -> Result<()> {
         doc.open("DomesticTransaction")?;
 
         doc.simple("accountFrom", &self.account_from)?;
@@ -132,7 +144,7 @@ impl Payment {
         doc.simple("ks", &self.ks)?;
         doc.simple("vs", &self.vs)?;
         doc.simple("ss", &self.ss)?;
-        doc.simple("date", &self.date.unwrap().to_string())?;
+        doc.simple("date", &self.date.to_string())?;
         doc.simple("messageForRecipient", &self.message_for_recipient)?;
         doc.simple("comment", &self.comment)?;
 
@@ -141,10 +153,7 @@ impl Payment {
     }
 }
 
-pub trait ToPaymentXml {
-    fn to_payment_xml(&self) -> Result<String>;
-}
-
+/// Instantiates a new XML document for import of payment orders.
 fn new_orders_doc() -> Result<TinyXml> {
     let mut doc = TinyXml::new()?;
     doc.open_attrs("Import", &[
@@ -155,19 +164,21 @@ fn new_orders_doc() -> Result<TinyXml> {
     Ok(doc)
 }
 
-impl ToPaymentXml for Payment {
+/// Support for single domestic payment
+impl ToPaymentXml for DomesticPayment {
     fn to_payment_xml(&self) -> Result<String> {
         let mut doc = new_orders_doc()?;
-        self.add_domestic_transaction(&mut doc)?;
+        self.add_to(&mut doc)?;
         Ok(doc.into_xml()?)
     }
 }
 
-impl ToPaymentXml for &[Payment] {
+/// Support for array of domestic payments
+impl ToPaymentXml for &[DomesticPayment] {
     fn to_payment_xml(&self) -> Result<String> {
         let mut doc = new_orders_doc()?;
         for payment in self.iter() {
-            payment.add_domestic_transaction(&mut doc)?;
+            payment.add_to(&mut doc)?;
         }
         Ok(doc.into_xml()?)
     }

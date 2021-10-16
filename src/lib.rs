@@ -3,7 +3,7 @@
 pub use client::{FioClient, FioClientWithImport};
 pub use error::{FioError, Result};
 pub use export::{FioExportReq, ReportFormat, TxFormat};
-pub use import::Payment;
+pub use import::DomesticPayment;
 pub use period::FioPeriod;
 pub use response::{FioResponse, FioResponseInfo};
 

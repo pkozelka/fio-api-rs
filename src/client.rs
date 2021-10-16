@@ -6,8 +6,8 @@ use reqwest::multipart::{Form, Part};
 use tokio::time::Duration;
 use tokio::time::Instant;
 
-use crate::{FioExportReq, Payment};
-use crate::import::ToPaymentXml;
+use crate::{DomesticPayment, FioExportReq};
+use crate::import::{today, ToPaymentXml};
 
 pub(crate) const FIOAPI_URL_BASE: &'static str = "https://www.fio.cz/ib_api/rest";
 const REQUEST_RATE: Duration = Duration::from_secs(30);
@@ -94,11 +94,43 @@ impl FioClientWithImport {
         log::trace!("HTTP Request: {:?}", http_request);
         let response = self.fio.client.execute(http_request).await?;
         response.error_for_status()
+        //TODO process response
+        // like this:
+        // ```
+        // <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        // <responseImport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.fio.cz/schema/responseImport.xsd">
+        // <result>
+        //   <errorCode>0</errorCode>
+        //   <idInstruction>1801400777</idInstruction>
+        //   <status>ok</status>
+        //   <sums>
+        //    <sum id="CZK">
+        //     <sumCredit>0</sumCredit>
+        //     <sumDebet>444.90</sumDebet>
+        //    </sum>
+        //   </sums>
+        // </result>
+        // <ordersDetails>
+        //  <detail id="1"><messages><message status="ok" errorCode="0">OK</message></messages></detail>
+        //  <detail id="2"><messages><message status="ok" errorCode="0">OK</message></messages></detail>
+        // </ordersDetails>
+        // </responseImport>
+        // ```
     }
 
-    /// Create a payment with account info pre-filled.
-    pub fn new_payment(&self) -> Payment {
-        Payment::new(&self.account_from, &self.currency)
+    /// Create a domestic transaction with account info pre-filled.
+    pub fn new_domestic(&self) -> DomesticPayment {
+        DomesticPayment::new(&self.account_from, &self.currency, today())
+    }
+
+    /// Create a T2 transaction with account info pre-filled.
+    pub fn new_t2(&self) -> () {
+        todo!()
+    }
+
+    /// Create a foreign transaction with account info pre-filled.
+    pub fn new_foreign(&self) -> () {
+        todo!()
     }
 }
 

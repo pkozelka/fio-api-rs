@@ -76,7 +76,7 @@ mod tests {
         init_logging();
         // curl -S --trace-ascii - -X POST -F "type=xml" -F "token=$(cat .git/fio-test-token)" -F "file=@examples/payment.xml" https://www.fio.cz/ib_api/rest/import/
         let fio = fio_client_rw();
-        let payment = fio.new_payment()
+        let payment = fio.new_domestic()
             .amount(321.45)
             .account_to("2702016516")
             .vs("20")
@@ -97,14 +97,14 @@ mod tests {
         // curl -S --trace-ascii - -X POST -F "type=xml" -F "token=$(cat .git/fio-test-token)" -F "file=@examples/payment.xml" https://www.fio.cz/ib_api/rest/import/
         let fio = fio_client_rw();
         let payments = vec![
-            fio.new_payment()
+            fio.new_domestic()
                 .amount(321.45)
                 .account_to("2702016516")
                 .vs("123")
                 .bank_code("2010")
                 .comment("T1")
                 .message_for_recipient("t1"),
-            fio.new_payment()
+            fio.new_domestic()
                 .amount(123.45)
                 .account_to("2702016516")
                 .bank_code("2010")
