@@ -35,7 +35,7 @@ mod tests {
 
     use chrono::{Datelike, NaiveDate};
 
-    use fio_api::{FioClient, FioClientWithImport, FioExportReq, ReportFormat, TxFormat};
+    use fio_api::{DomesticSymbolsBuilder, DomesticTransaction, FioClient, FioClientWithImport, FioExportReq, PaymentBuilder, ReportFormat, TxFormat};
 
     fn init_logging() {
         std::env::set_var("RUST_LOG", "info,hello_fio_api=debug,fio_api=trace");
@@ -78,9 +78,8 @@ mod tests {
         let fio = fio_client_rw();
         let payment = fio.new_domestic()
             .amount(321.45)
-            .account_to("2702016516")
+            .account_to("2702016516", "2010")
             .vs("20")
-            .bank_code("2010")
             .comment("T1")
             .message_for_recipient("t1")
             ;
@@ -94,21 +93,20 @@ mod tests {
     #[ignore]
     async fn test_import_czk_two_payments() {
         init_logging();
-        // curl -S --trace-ascii - -X POST -F "type=xml" -F "token=$(cat .git/fio-test-token)" -F "file=@examples/payment.xml" https://www.fio.cz/ib_api/rest/import/
         let fio = fio_client_rw();
         let payments = vec![
             fio.new_domestic()
                 .amount(321.45)
-                .account_to("2702016516")
+                .account_to("2702016516", "2010")
                 .vs("123")
-                .bank_code("2010")
                 .comment("T1")
-                .message_for_recipient("t1"),
+                .message_for_recipient("t1")
+                .into(),
             fio.new_domestic()
                 .amount(123.45)
-                .account_to("2702016516")
-                .bank_code("2010")
-                .vs("1010110101"),
+                .account_to("2702016516", "2010")
+                .vs("1010110101")
+                .into(),
         ];
         let r = fio.import(payments.as_slice()).await.unwrap();
         println!("Payment Response:\nStatus={}\n {:?}", r.status(), r);
