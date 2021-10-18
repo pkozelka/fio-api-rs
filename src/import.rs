@@ -4,11 +4,12 @@ use std::collections::HashMap;
 use std::io::ErrorKind;
 
 use chrono::NaiveDate;
+use serde::Deserialize;
+use strum_macros::IntoStaticStr;
 
 use crate::Result;
 use crate::tiny_xml::TinyXml;
 
-// TODO: define strict formats for payments
 // TODO: enhance error xml to receive all fields
 
 pub trait ToPaymentXml {
@@ -124,19 +125,19 @@ pub trait PaymentBuilder: Sized {
     }
 
     /// (optional, 3!n) platební titul – viz 6.3.4 Platební titul
-    ///TODO only domestic; t2 has bool:priority; foreign has none
     fn payment_reason(self, value: u16) -> Self {
         self.set("paymentReason", value.to_string())
     }
+}
 
-    /// (optional, 3!n) typ platby; přípustné hodnoty jsou:
-    /// * `431001` – standardní
-    /// * `431005` – prioritní
-    /// * `431022` – příkaz k inkasu
-    /// TODO consider using enum here
-    fn payment_type(self, value: u32) -> Self {
-        self.set("paymentType", value.to_string())
-    }
+#[derive(Debug, Deserialize, IntoStaticStr)]
+pub enum PaymentType {
+    #[strum(serialize = "431001")]
+    Standard,
+    #[strum(serialize = "431005")]
+    Priority,
+    #[strum(serialize = "431022")]
+    Inkaso,
 }
 
 pub trait DomesticSymbolsBuilder: PaymentBuilder {
@@ -168,6 +169,14 @@ pub trait DomesticTransaction: PaymentBuilder + DomesticSymbolsBuilder {
     /// (optional, 140i) zpráva pro příjemce
     fn message_for_recipient<S: ToString>(self, value: S) -> Self {
         self.set("messageForRecipient", value)
+    }
+
+    /// (optional, 6!n) typ platby; přípustné hodnoty jsou:
+    /// * `431001` – standardní
+    /// * `431005` – prioritní
+    /// * `431022` – příkaz k inkasu
+    fn payment_type(self, value: PaymentType) -> Self {
+        self.set("paymentType", Into::<&str>::into(value))
     }
 }
 
@@ -237,7 +246,14 @@ pub trait AbroadTransaction: PaymentBuilder {
     }
 }
 
-pub trait T2Transaction: AbroadTransaction + DomesticSymbolsBuilder {}
+pub trait T2Transaction: AbroadTransaction + DomesticSymbolsBuilder {
+    /// (optional, 6!n) typ platby; přípustné hodnoty jsou:
+    /// * `431008` – standardní
+    /// * `431009` – prioritní
+    fn payment_type(self, priority: bool) -> Self {
+        self.set("paymentType", if priority { "431009" } else { "431008" })
+    }
+}
 
 /// 6.3.2 XML příkaz Europlatba
 pub struct T2Payment {
@@ -274,12 +290,16 @@ impl From<T2Payment> for Payment {
 }
 
 /// poplatky
+#[derive(Debug, Deserialize, IntoStaticStr)]
 pub enum DetailsOfCharges {
     /// 470501 – vše plátce (OUR)
+    #[strum(serialize = "470501")]
     OUR,
     /// 470502 – vše přijemce (BEN)
+    #[strum(serialize = "470502")]
     BEN,
     /// 470503 – každý sám své (SHA)
+    #[strum(serialize = "470503")]
     SHA,
 }
 
@@ -288,8 +308,8 @@ pub trait ForeignTransaction: AbroadTransaction {
         self.set("remittanceInfo4", value)
     }
 
-    fn details_of_charges<S: ToString>(self, details_of_charges: S) -> Self {
-        self.set("detailsOfCharges", details_of_charges.to_string())
+    fn details_of_charges(self, details_of_charges: DetailsOfCharges) -> Self {
+        self.set("detailsOfCharges", Into::<&str>::into(details_of_charges))
     }
 }
 
@@ -351,7 +371,8 @@ mod tests {
             .date_today()
             .amount(43.1)
             .account_to("fadfa")
-            .bic("fasdfa");
+            .bic("fasdfa")
+            .details_of_charges(DetailsOfCharges::SHA);
         println!("fp: {:?}", fp.payment.properties);
     }
 }

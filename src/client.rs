@@ -6,7 +6,7 @@ use reqwest::multipart::{Form, Part};
 use tokio::time::Duration;
 use tokio::time::Instant;
 
-use crate::{DomesticPayment, FioExportReq, ForeignPayment, T2Payment};
+use crate::{DomesticPayment, FioExportReq, ForeignPayment, ForeignTransaction, T2Payment};
 use crate::import::{DetailsOfCharges, PaymentBuilder, ToPaymentXml};
 
 pub(crate) const FIOAPI_URL_BASE: &'static str = "https://www.fio.cz/ib_api/rest";
@@ -131,10 +131,10 @@ impl FioClientWithImport {
     }
 
     /// Create a foreign transaction with account info pre-filled.
-    pub fn new_foreign(&self, _details_of_charges: DetailsOfCharges) -> ForeignPayment {
+    pub fn new_foreign(&self, details_of_charges: DetailsOfCharges) -> ForeignPayment {
         ForeignPayment::new(&self.account_from, &self.currency)
             .date_today()
-        //TODO .details_of_charges()
+            .details_of_charges(details_of_charges)
     }
 }
 

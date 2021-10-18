@@ -35,7 +35,7 @@ mod tests {
 
     use chrono::{Datelike, NaiveDate};
 
-    use fio_api::{DomesticSymbolsBuilder, DomesticTransaction, FioClient, FioClientWithImport, FioExportReq, PaymentBuilder, ReportFormat, TxFormat};
+    use fio_api::{DomesticSymbolsBuilder, DomesticTransaction, FioClient, FioClientWithImport, FioExportReq, PaymentBuilder, PaymentType, ReportFormat, TxFormat};
 
     fn init_logging() {
         std::env::set_var("RUST_LOG", "info,hello_fio_api=debug,fio_api=trace");
@@ -106,6 +106,7 @@ mod tests {
                 .amount(123.45)
                 .account_to("2702016516", "2010")
                 .vs("1010110101")
+                .payment_type(PaymentType::Standard)
                 .into(),
         ];
         let r = fio.import(payments.as_slice()).await.unwrap();
